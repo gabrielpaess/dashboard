@@ -159,3 +159,4 @@ const calcularMetaMensal = (dadosHistoricos) => {
 4. **Realismo** nas metas propostas
 
 *Este documento foi gerado para explicar a lógica atual e propor melhorias nos cálculos de métricas de vendas.*
+

@@ -140,3 +140,4 @@ Após aprovação, podemos:
 ---
 
 *Este sistema foi desenvolvido para otimizar o controle de entrega e melhorar a experiência do cliente, garantindo transparência e eficiência operacional.*
+

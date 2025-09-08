@@ -6,8 +6,14 @@ const isDev = process.env.NODE_ENV !== 'production';
 let inlineEditPlugin, editModeDevPlugin;
 
 if (isDev) {
-	inlineEditPlugin = (await import('./plugins/visual-editor/vite-plugin-react-inline-editor.js')).default;
-	editModeDevPlugin = (await import('./plugins/visual-editor/vite-plugin-edit-mode.js')).default;
+	try {
+		inlineEditPlugin = (await import('./plugins/visual-editor/vite-plugin-react-inline-editor.js')).default;
+		editModeDevPlugin = (await import('./plugins/visual-editor/vite-plugin-edit-mode.js')).default;
+	} catch (error) {
+		console.warn('Failed to load visual editor plugins:', error.message);
+		inlineEditPlugin = null;
+		editModeDevPlugin = null;
+	}
 }
 
 const configHorizonsViteErrorHandler = `
@@ -208,7 +214,7 @@ logger.error = (msg, options) => {
 export default defineConfig({
 	customLogger: logger,
 	plugins: [
-		...(isDev ? [inlineEditPlugin(), editModeDevPlugin()] : []),
+		...(isDev && inlineEditPlugin && editModeDevPlugin ? [inlineEditPlugin(), editModeDevPlugin()] : []),
 		react(),
 		addTransformIndexHtml
 	],
