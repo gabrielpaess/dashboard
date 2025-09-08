@@ -78,6 +78,18 @@ importers:
         specifier: ^1.0.7
         version: 1.0.7(tailwindcss@3.4.17)
     devDependencies:
+      '@babel/generator':
+        specifier: ^7.23.6
+        version: 7.28.3
+      '@babel/parser':
+        specifier: ^7.23.9
+        version: 7.28.3
+      '@babel/traverse':
+        specifier: ^7.23.9
+        version: 7.28.3
+      '@babel/types':
+        specifier: ^7.23.6
+        version: 7.28.2
       '@types/node':
         specifier: ^20.8.3
         version: 20.19.13
