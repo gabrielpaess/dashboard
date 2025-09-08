@@ -637,10 +637,10 @@ var vite_config_default = defineConfig({
         rewrite: (path3) => path3.replace(/^\/api\/tiny/, "/api2"),
         configure: (proxy, options) => {
           proxy.on("proxyReq", (proxyReq, req, res) => {
-            console.log("\u{1F504} Proxy: Fazendo requisi\xE7\xE3o para API Tiny:", req.url);
+            // Proxy request
           });
           proxy.on("proxyRes", (proxyRes, req, res) => {
-            console.log("\u2705 Proxy: Resposta recebida da API Tiny:", proxyRes.statusCode);
+            // Proxy response
           });
         }
       }

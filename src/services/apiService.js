@@ -7,46 +7,23 @@ class ApiService {
       : '/api/tiny/pedidos.pesquisa.php';  // Proxy da Vercel
     this.token = import.meta.env.VITE_TINY_API_TOKEN;
     
-    // Debug logs para Vercel
-    console.log('🔧 ApiService Constructor Debug:', {
-      isDev: import.meta.env.DEV,
-      baseUrl: this.baseUrl,
-      token: this.token ? `${this.token.substring(0, 10)}...` : 'UNDEFINED',
-      tokenLength: this.token ? this.token.length : 0,
-      allEnvVars: Object.keys(import.meta.env),
-      viteTinyToken: import.meta.env.VITE_TINY_API_TOKEN ? 'EXISTS' : 'MISSING'
-    });
   }
 
   // Formatar data para API (DD/MM/YYYY) - Versão simplificada
   formatDateForAPI(dateString) {
     if (!dateString) return '';
     
-    console.log('🔄 ApiService.formatDateForAPI - Convertendo data:', {
-      input: dateString,
-      inputType: typeof dateString
-    });
     
     // Converter yyyy-mm-dd para dd/mm/yyyy sem usar Date()
     const [ano, mes, dia] = dateString.split('-');
     const result = `${dia}/${mes}/${ano}`;
     
-    console.log('🔄 ApiService.formatDateForAPI - Resultado:', {
-      result,
-      input: dateString,
-      conversao: `${ano}-${mes}-${dia} → ${result}`
-    });
     
     return result;
   }
 
   // Construir parâmetros da query
   buildQueryParams(params = {}) {
-    console.log('🔧 ApiService - Construindo parâmetros:', {
-      paramsRecebidos: params,
-      token: this.token.substring(0, 10) + '...',
-      formato: 'json'
-    });
     
     const queryParams = new URLSearchParams({
       token: this.token,
@@ -54,13 +31,6 @@ class ApiService {
       ...params
     });
     
-    console.log('🔧 ApiService - Parâmetros finais:', {
-      queryString: queryParams.toString(),
-      temDataInicial: queryParams.has('dataInicial'),
-      temDataFinal: queryParams.has('dataFinal'),
-      dataInicial: queryParams.get('dataInicial'),
-      dataFinal: queryParams.get('dataFinal')
-    });
     
     return queryParams;
   }
@@ -71,21 +41,12 @@ class ApiService {
       const queryParams = this.buildQueryParams(params);
       const url = `${this.baseUrl}?${queryParams.toString()}`;
       
-      console.log('🌐 ApiService - Fazendo requisição:', {
-        url,
-        params,
-        token: this.token ? this.token.substring(0, 10) + '...' : 'UNDEFINED',
-        tokenFromEnv: !!import.meta.env.VITE_TINY_API_TOKEN,
-        isDev: import.meta.env.DEV,
-        baseUrl: this.baseUrl
-      });
 
       // Verificar se o token existe antes de fazer a requisição
       if (!this.token) {
         throw new Error('Token da API Tiny não encontrado. Verifique se VITE_TINY_API_TOKEN está configurado na Vercel.');
       }
 
-      console.log('🚀 Iniciando fetch para:', url);
       
       const response = await fetch(url, {
         method: 'GET',
@@ -103,12 +64,6 @@ class ApiService {
 
       const data = await response.json();
       
-      console.log('📥 ApiService - Resposta recebida:', {
-        status: data.retorno?.status,
-        totalPedidos: data.retorno?.pedidos?.length || 0,
-        pagina: data.retorno?.pagina,
-        numeroPaginas: data.retorno?.numero_paginas
-      });
 
       if (!data || !data.retorno) {
         throw new Error('Resposta inválida da API do Tiny');
@@ -152,18 +107,12 @@ class ApiService {
       dataFinal: this.formatDateForAPI(endDate)
     };
 
-    console.log('🔍 ApiService - Buscando pedidos por data:', {
-      startDate,
-      endDate,
-      params
-    });
 
     return await this.fetchOrders(params);
   }
 
   // Buscar todos os pedidos (sem filtro)
   async fetchAllOrders() {
-    console.log('📊 ApiService - Buscando todos os pedidos');
     return await this.fetchOrders();
   }
 
@@ -175,28 +124,17 @@ class ApiService {
 
   // Buscar todas as páginas de pedidos
   async fetchAllPages(params = {}) {
-    console.log('📚 ApiService - fetchAllPages chamado com parâmetros:', {
-      params,
-      temDataInicial: !!params.dataInicial,
-      temDataFinal: !!params.dataFinal,
-      dataInicial: params.dataInicial,
-      dataFinal: params.dataFinal
-    });
     
     let allPedidos = [];
     let currentPage = 1;
     let totalPages = 1;
 
     do {
-      console.log(`📄 ApiService - Buscando página ${currentPage}/${totalPages}`, {
-        paramsParaPagina: { ...params, pagina: currentPage }
-      });
       
       const response = await this.fetchOrdersPaginated(params, currentPage);
       
       if (response.pedidos && response.pedidos.length > 0) {
         allPedidos = [...allPedidos, ...response.pedidos];
-        console.log(`📄 Página ${currentPage}: ${response.pedidos.length} pedidos encontrados`);
       }
 
       totalPages = response.numero_paginas || 1;
@@ -204,11 +142,6 @@ class ApiService {
 
     } while (currentPage <= totalPages);
 
-    console.log('✅ ApiService - Todas as páginas carregadas:', {
-      totalPedidos: allPedidos.length,
-      totalPaginas: totalPages,
-      filtroAplicado: !!(params.dataInicial && params.dataFinal)
-    });
 
     return {
       pedidos: allPedidos,

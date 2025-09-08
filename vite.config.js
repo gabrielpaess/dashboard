@@ -231,10 +231,10 @@ export default defineConfig({
 				rewrite: (path) => path.replace(/^\/api\/tiny/, '/api2'),
 				configure: (proxy, options) => {
 					proxy.on('proxyReq', (proxyReq, req, res) => {
-						console.log('🔄 Proxy: Fazendo requisição para API Tiny:', req.url);
+						// Proxy request
 					});
 					proxy.on('proxyRes', (proxyRes, req, res) => {
-						console.log('✅ Proxy: Resposta recebida da API Tiny:', proxyRes.statusCode);
+						// Proxy response
 					});
 				}
 			}

@@ -2,18 +2,15 @@
 class OrderService {
   // Processar dados dos pedidos da API para o dashboard
   processOrderData(apiOrders) {
-    console.log('🔄 OrderService - Processando dados:', apiOrders.length, 'pedidos');
     
     // Debug: Mostrar todas as situações únicas que estão vindo da API
     const situacoesUnicas = [...new Set(apiOrders.map(o => o.pedido.situacao))];
-    console.log('📊 Situações encontradas na API:', situacoesUnicas);
     
     // Debug: Contar pedidos por situação
     const contagemPorSituacao = situacoesUnicas.reduce((acc, situacao) => {
       acc[situacao] = apiOrders.filter(o => o.pedido.situacao === situacao).length;
       return acc;
     }, {});
-    console.log('📈 Contagem por situação:', contagemPorSituacao);
     
     const orders = apiOrders.map(({ pedido }) => {
       const createdDate = new Date(pedido.data_pedido.split('/').reverse().join('-'));
@@ -155,30 +152,15 @@ class OrderService {
     };
     
     // Debug: Mostrar contagem dos estágios mapeados
-    console.log('🎯 Contagem dos estágios mapeados:', {
-      'Vendido': wipByStage['Vendido'],
-      'Em Produção': wipByStage['Em Produção'],
-      'Em Desenvolvimento': wipByStage['Em Desenvolvimento']
-    });
     
     // Debug: Mostrar dados específicos de desenvolvimento
     const pedidosAprovados = apiOrders.filter(o => o.pedido.situacao === 'aprovado');
-    console.log('🔧 Dados de Desenvolvimento:', {
-      'Aprovados (desenvolvidos)': pedidosAprovados.length,
-      'Em aberto (backlog)': wipByStage['Em Aberto'],
-      'Exemplos de pedidos aprovados': pedidosAprovados.slice(0, 3).map(p => ({
-        id: p.pedido.id,
-        numero: p.pedido.numero,
-        situacao: p.pedido.situacao
-      }))
-    });
     
     // Debug: Mostrar status de SLA calculados
     const statusSLA = orders.reduce((acc, order) => {
       acc[order.status] = (acc[order.status] || 0) + 1;
       return acc;
     }, {});
-    console.log('📊 Status de SLA Calculados:', statusSLA);
     
     // Debug: Mostrar exemplos de pedidos por status
     const exemplosPorStatus = ['on-time', 'risk', 'late', 'delivered'].reduce((acc, status) => {
@@ -194,26 +176,10 @@ class OrderService {
       }
       return acc;
     }, {});
-    console.log('🎯 Exemplos por Status SLA:', exemplosPorStatus);
     
     // Validação: Verificar se a soma dos estágios principais bate com o total
     const totalMapeado = wipByStage['Vendido'] + wipByStage['Em Produção'] + wipByStage['Em Desenvolvimento'];
     const totalOriginal = apiOrders.length;
-    console.log('✅ Validação de contagem:', {
-      totalMapeado,
-      totalOriginal,
-      diferenca: totalOriginal - totalMapeado,
-      situacoesNaoMapeadas: situacoesUnicas.filter(s => 
-        s !== 'Em aberto' && 
-        s !== 'aprovado' &&
-        s !== 'Preparando envio' && 
-        s !== 'Pronto para envio' && 
-        s !== 'Faturado' &&
-        s !== 'Enviado' &&
-        s !== 'Entregue' &&
-        s !== 'Cancelado'
-      )
-    });
 
     const preparandoEnvio = apiOrders.filter(o => 
       o.pedido.situacao === 'Preparando envio'
@@ -270,12 +236,6 @@ class OrderService {
     const mesAtual = hoje.getMonth() + 1; // getMonth() retorna 0-11
     const anoAtual = hoje.getFullYear();
     
-    console.log('📅 DATA DE CONSULTA:', {
-      hoje: `${diaAtual}/${mesAtual}/${anoAtual}`,
-      dia: diaAtual,
-      mes: mesAtual,
-      ano: anoAtual
-    });
     
     // Função auxiliar para converter data_pedido para Date
     const parseDataPedido = (dataPedido) => {
@@ -290,7 +250,6 @@ class OrderService {
     };
     
     // META DIÁRIA: Pedidos do mesmo dia
-    console.log('🔍 META DIÁRIA - Buscando pedidos do dia:', diaAtual);
     const pedidosDiarios = apiOrders.filter(({ pedido }) => {
       if (!pedido.data_pedido) return false;
       
@@ -303,13 +262,6 @@ class OrderService {
       const isSameDay = diaPedido === diaAtual && mesPedido === mesAtual;
       
       if (isSameDay) {
-        console.log('✅ PEDIDO DIÁRIO ENCONTRADO:', {
-          id: pedido.id,
-          data_pedido: pedido.data_pedido,
-          valor: pedido.valor,
-          diaPedido,
-          mesPedido
-        });
       }
       
       return isSameDay;
@@ -317,17 +269,10 @@ class OrderService {
     
     const revenueDiario = pedidosDiarios.reduce((sum, { pedido }) => {
       const valor = parseFloat(pedido.valor || 0);
-      console.log('💰 SOMANDO DIÁRIO:', {
-        id: pedido.id,
-        valor: valor,
-        somaAnterior: sum,
-        novaSoma: sum + valor
-      });
       return sum + valor;
     }, 0);
     
     // META SEMANAL: Pedidos da semana atual (domingo a sábado)
-    console.log('🔍 META SEMANAL - Buscando pedidos da semana');
     const inicioSemana = new Date(hoje);
     inicioSemana.setDate(hoje.getDate() - hoje.getDay()); // Domingo
     inicioSemana.setHours(0, 0, 0, 0);
@@ -345,12 +290,6 @@ class OrderService {
       const isInWeek = dataPedido >= inicioSemana && dataPedido <= fimSemana;
       
       if (isInWeek) {
-        console.log('✅ PEDIDO SEMANAL ENCONTRADO:', {
-          id: pedido.id,
-          data_pedido: pedido.data_pedido,
-          valor: pedido.valor,
-          dataConvertida: dataPedido.toISOString().split('T')[0]
-        });
       }
       
       return isInWeek;
@@ -362,7 +301,6 @@ class OrderService {
     }, 0);
     
     // META MENSAL: Pedidos do mês atual
-    console.log('🔍 META MENSAL - Buscando pedidos do mês:', mesAtual);
     const pedidosMensais = apiOrders.filter(({ pedido }) => {
       if (!pedido.data_pedido) return false;
       
@@ -375,13 +313,6 @@ class OrderService {
       const isSameMonth = mesPedido === mesAtual && anoPedido === anoAtual;
       
       if (isSameMonth) {
-        console.log('✅ PEDIDO MENSAL ENCONTRADO:', {
-          id: pedido.id,
-          data_pedido: pedido.data_pedido,
-          valor: pedido.valor,
-          mesPedido,
-          anoPedido
-        });
       }
       
       return isSameMonth;
@@ -398,30 +329,6 @@ class OrderService {
     const metaMensal = Math.max(200000, revenueMensal * 1.1);
     
     // Debug final
-    console.log('📊 RESULTADO FINAL DAS METAS:', {
-      diario: {
-        pedidos: pedidosDiarios.length,
-        revenue: revenueDiario,
-        meta: metaDiaria,
-        pedidosDetalhes: pedidosDiarios.map(p => ({
-          id: p.pedido.id,
-          data_pedido: p.pedido.data_pedido,
-          valor: p.pedido.valor
-        }))
-      },
-      semanal: {
-        pedidos: pedidosSemanais.length,
-        revenue: revenueSemanal,
-        meta: metaSemanal,
-        periodo: `${inicioSemana.toISOString().split('T')[0]} a ${fimSemana.toISOString().split('T')[0]}`
-      },
-      mensal: {
-        pedidos: pedidosMensais.length,
-        revenue: revenueMensal,
-        meta: metaMensal,
-        mes: mesAtual
-      }
-    });
     
     return {
       daily: { 

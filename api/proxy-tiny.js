@@ -33,7 +33,6 @@ export default async function handler(req, res) {
     url.searchParams.append('token', token);
     url.searchParams.append('formato', 'json');
 
-    console.log('🔄 Proxy Vercel - Fazendo requisição para:', url.toString());
 
     // Fazer requisição para API Tiny
     const response = await fetch(url.toString(), {
@@ -52,10 +51,6 @@ export default async function handler(req, res) {
     }
 
     const data = await response.json();
-    console.log('✅ Proxy Vercel - Resposta recebida da API Tiny:', {
-      status: data.retorno?.status,
-      totalPedidos: data.retorno?.pedidos?.length || 0
-    });
 
     return res.status(200).json(data);
 

@@ -11,18 +11,6 @@ const DateFilter = ({ startDate, endDate, appliedStartDate, appliedEndDate, filt
     return `${dia}/${mes}/${ano}`;
   };
 
-  // Debug: Log das datas recebidas
-  console.log('📅 DateFilter - Estado atual:', {
-    startDate,
-    endDate,
-    appliedStartDate,
-    appliedEndDate,
-    filterActive,
-    startDateFormatted: startDate ? formatDateForAPI(startDate) : 'undefined',
-    endDateFormatted: endDate ? formatDateForAPI(endDate) : 'undefined',
-    appliedStartDateFormatted: appliedStartDate ? formatDateForAPI(appliedStartDate) : 'undefined',
-    appliedEndDateFormatted: appliedEndDate ? formatDateForAPI(appliedEndDate) : 'undefined'
-  });
 
   const handleApplyFilter = () => {
     // Prevenir duplo clique

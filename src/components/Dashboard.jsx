@@ -42,20 +42,11 @@ const Dashboard = () => {
   const formatDateForAPI = (dateString) => {
     if (!dateString) return '';
     
-    console.log('🔄 Dashboard.formatDateForAPI - Convertendo data:', {
-      input: dateString,
-      inputType: typeof dateString
-    });
     
     // Converter yyyy-mm-dd para dd/mm/yyyy sem usar Date()
     const [ano, mes, dia] = dateString.split('-');
     const result = `${dia}/${mes}/${ano}`;
     
-    console.log('🔄 Dashboard.formatDateForAPI - Resultado:', {
-      result,
-      input: dateString,
-      conversao: `${ano}-${mes}-${dia} → ${result}`
-    });
     
     return result;
   };
@@ -68,13 +59,6 @@ const Dashboard = () => {
     }
     
     try {
-      console.log('🚀 Dashboard - Iniciando busca de dados:', {
-        useFilter,
-        appliedStartDate,
-        appliedEndDate,
-        hasAppliedStartDate: !!appliedStartDate,
-        hasAppliedEndDate: !!appliedEndDate
-      });
 
       let response;
       
@@ -83,36 +67,19 @@ const Dashboard = () => {
         const dataInicial = apiService.formatDateForAPI(appliedStartDate);
         const dataFinal = apiService.formatDateForAPI(appliedEndDate);
         
-        console.log('🔍 Buscando pedidos com filtro de data:', {
-          startDate: appliedStartDate,
-          endDate: appliedEndDate,
-          dataInicial,
-          dataFinal
-        });
         
         response = await apiService.fetchAllPages({
           dataInicial,
           dataFinal
         });
       } else {
-        console.log('📊 Buscando todos os pedidos (sem filtro)');
         response = await apiService.fetchAllPages();
       }
 
-      console.log('✅ Dados recebidos da API:', {
-        totalPedidos: response.pedidos.length,
-        totalPaginas: response.total_paginas,
-        filtroAplicado: useFilter
-      });
 
       // Processar dados usando o service
       const processedData = orderService.processOrderData(response.pedidos);
       
-      console.log('✅ Dados processados para o dashboard:', {
-        totalOrders: processedData.orders.length,
-        productionData: processedData.productionData,
-        totalRevenue: processedData.salesMetrics.monthly.current
-      });
       
       setDashboardData(processedData);
       setLastUpdated(new Date());
@@ -131,32 +98,18 @@ const Dashboard = () => {
   }, [toast, appliedStartDate, appliedEndDate]);
 
   const handleStartDateChange = (date) => {
-    console.log('📅 Data inicial alterada:', { 
-      date, 
-      formatted: date ? formatDateForAPI(date) : 'vazio' 
-    });
     setStartDate(date);
     // NÃO desativar o filtro automaticamente - apenas quando aplicar
     // O filtro só será desativado quando o usuário clicar em "Aplicar Filtro"
   };
 
   const handleEndDateChange = (date) => {
-    console.log('📅 Data final alterada:', { 
-      date, 
-      formatted: date ? formatDateForAPI(date) : 'vazio' 
-    });
     setEndDate(date);
     // NÃO desativar o filtro automaticamente - apenas quando aplicar
     // O filtro só será desativado quando o usuário clicar em "Aplicar Filtro"
   };
 
   const handleApplyFilter = () => {
-    console.log('🔍 Aplicando filtro de data:', {
-      startDate,
-      endDate,
-      startDateFormatted: startDate ? formatDateForAPI(startDate) : 'undefined',
-      endDateFormatted: endDate ? formatDateForAPI(endDate) : 'undefined'
-    });
 
     // Validar datas antes de aplicar
     if (!startDate || !endDate) {
@@ -192,38 +145,18 @@ const Dashboard = () => {
     }
 
     // Salvar as datas aplicadas e ativar o filtro
-    console.log('💾 Salvando datas aplicadas:', {
-      startDate,
-      endDate,
-      startDateType: typeof startDate,
-      endDateType: typeof endDate,
-      startDateFormatted: formatDateForAPI(startDate),
-      endDateFormatted: formatDateForAPI(endDate)
-    });
     
     setAppliedStartDate(startDate);
     setAppliedEndDate(endDate);
     setFilterActive(true);
     
-    console.log('✅ Estados atualizados:', {
-      appliedStartDate: startDate,
-      appliedEndDate: endDate,
-      filterActive: true
-    });
     
-    console.log('✅ Filtro aplicado com sucesso:', {
-      dataInicial: formatDateForAPI(startDate),
-      dataFinal: formatDateForAPI(endDate),
-      periodo: `${formatDateForAPI(startDate)} até ${formatDateForAPI(endDate)}`
-    });
     
     // Buscar dados com filtro
-    console.log('🚀 Chamando fetchOrders com filtro...');
     fetchOrders(true, true);
   };
 
   const handleClearFilter = () => {
-    console.log('🧹 Voltando ao filtro padrão (últimos 7 dias)');
     
     // Voltar ao filtro padrão (últimos 7 dias)
     const defaultStart = getDefaultStartDate();
@@ -241,19 +174,10 @@ const Dashboard = () => {
 
   useEffect(() => {
     // Carregar dados iniciais com filtro padrão (últimos 7 dias)
-    console.log('🚀 Dashboard - Carregando dados iniciais com filtro padrão:', {
-      startDate: getDefaultStartDate(),
-      endDate: getDefaultEndDate()
-    });
     fetchOrders(false, true); // useFilter = true para usar filtro padrão
     
     // Atualizar dados a cada 5 minutos (300000ms) com filtro atual
     const interval = setInterval(() => {
-      console.log('🔄 Dashboard - Atualização automática com filtro:', {
-        filterActive,
-        appliedStartDate,
-        appliedEndDate
-      });
       // Buscar dados com filtro atual (se ativo) ou sem filtro
       fetchOrders(false, filterActive);
     }, 300000);
@@ -263,13 +187,6 @@ const Dashboard = () => {
 
   // useEffect separado para evitar re-renders desnecessários quando apenas startDate/endDate mudam
   useEffect(() => {
-    console.log('📅 Datas de seleção alteradas (sem re-fetch):', {
-      startDate,
-      endDate,
-      filterActive,
-      appliedStartDate,
-      appliedEndDate
-    });
     // Este useEffect não deve fazer fetch - apenas log para debug
   }, [startDate, endDate]);
 

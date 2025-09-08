@@ -12,16 +12,6 @@ const AfterSalesAlerts = ({ orders }) => {
     // Filtrar pedidos que têm data_prevista (promisedDate)
     const ordersWithPromisedDate = orders.filter(o => o.promisedDate);
     
-    console.log('📦 Pós-venda - Pedidos com data_prevista:', {
-      total: orders.length,
-      comDataPrevista: ordersWithPromisedDate.length,
-      exemplos: ordersWithPromisedDate.slice(0, 3).map(o => ({
-        id: o.id,
-        customer: o.customer,
-        data_prevista: o.promisedDate,
-        situacao: o.situacao
-      }))
-    });
     
     // Calcular data de pós-venda (data_prevista + 15 dias)
     const afterSalesAlerts = ordersWithPromisedDate.filter(o => {
@@ -33,14 +23,6 @@ const AfterSalesAlerts = ({ orders }) => {
       const shouldAlert = daysSinceAfterSales >= 0;
       
       if (shouldAlert) {
-        console.log('🔔 ALERTA PÓS-VENDA:', {
-          id: o.id,
-          customer: o.customer,
-          data_prevista: promisedDate.toISOString().split('T')[0],
-          data_pos_venda: afterSalesDate.toISOString().split('T')[0],
-          dias_desde_pos_venda: daysSinceAfterSales,
-          situacao: o.situacao
-        });
       }
       
       return shouldAlert;
@@ -58,16 +40,6 @@ const AfterSalesAlerts = ({ orders }) => {
       };
     });
 
-    console.log('📊 RESULTADO ALERTAS PÓS-VENDA:', {
-      totalAlertas: afterSalesAlerts.length,
-      alertas: afterSalesAlerts.map(a => ({
-        id: a.id,
-        customer: a.customer,
-        data_prevista: a.promisedDate,
-        data_pos_venda: a.afterSalesDate,
-        dias_desde_pos_venda: a.daysSinceAfterSales
-      }))
-    });
 
     return afterSalesAlerts.sort((a,b) => parseInt(a.id) - parseInt(b.id));
   }, [orders, now]);
