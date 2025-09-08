@@ -1,11 +1,21 @@
 // Service para chamadas da API Tiny
 class ApiService {
   constructor() {
-    // Usar proxy do Vite em desenvolvimento, API direta em produção
+    // Usar proxy do Vite em desenvolvimento, proxy da Vercel em produção
     this.baseUrl = import.meta.env.DEV 
       ? '/api/tiny/pedidos.pesquisa.php'  // Proxy do Vite
-      : 'https://api.tiny.com.br/api2/pedidos.pesquisa.php';  // API direta
+      : '/api/tiny/pedidos.pesquisa.php';  // Proxy da Vercel
     this.token = import.meta.env.VITE_TINY_API_TOKEN;
+    
+    // Debug logs para Vercel
+    console.log('🔧 ApiService Constructor Debug:', {
+      isDev: import.meta.env.DEV,
+      baseUrl: this.baseUrl,
+      token: this.token ? `${this.token.substring(0, 10)}...` : 'UNDEFINED',
+      tokenLength: this.token ? this.token.length : 0,
+      allEnvVars: Object.keys(import.meta.env),
+      viteTinyToken: import.meta.env.VITE_TINY_API_TOKEN ? 'EXISTS' : 'MISSING'
+    });
   }
 
   // Formatar data para API (DD/MM/YYYY) - Versão simplificada
@@ -64,17 +74,27 @@ class ApiService {
       console.log('🌐 ApiService - Fazendo requisição:', {
         url,
         params,
-        token: this.token.substring(0, 10) + '...',
-        tokenFromEnv: !!import.meta.env.VITE_TINY_API_TOKEN
+        token: this.token ? this.token.substring(0, 10) + '...' : 'UNDEFINED',
+        tokenFromEnv: !!import.meta.env.VITE_TINY_API_TOKEN,
+        isDev: import.meta.env.DEV,
+        baseUrl: this.baseUrl
       });
 
+      // Verificar se o token existe antes de fazer a requisição
+      if (!this.token) {
+        throw new Error('Token da API Tiny não encontrado. Verifique se VITE_TINY_API_TOKEN está configurado na Vercel.');
+      }
+
+      console.log('🚀 Iniciando fetch para:', url);
+      
       const response = await fetch(url, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
         },
-        // Remover mode: 'cors' para usar proxy
+        // Adicionar mode: 'cors' para requisições cross-origin em produção
+        mode: import.meta.env.DEV ? 'cors' : 'cors'
       });
 
       if (!response.ok) {
@@ -107,7 +127,20 @@ class ApiService {
 
       return data.retorno;
     } catch (error) {
-      console.error('❌ ApiService - Erro na requisição:', error);
+      console.error('❌ ApiService - Erro na requisição:', {
+        error: error.message,
+        name: error.name,
+        stack: error.stack,
+        url: this.baseUrl,
+        token: this.token ? 'EXISTS' : 'MISSING',
+        isDev: import.meta.env.DEV
+      });
+      
+      // Tratamento específico para erros de CORS
+      if (error.name === 'TypeError' && error.message.includes('Failed to fetch')) {
+        throw new Error(`Erro de CORS ou rede: ${error.message}. Verifique se a API Tiny permite requisições do domínio da Vercel.`);
+      }
+      
       throw error;
     }
   }

@@ -1,0 +1,13 @@
+{
+  "functions": {
+    "api/proxy-tiny.js": {
+      "maxDuration": 30
+    }
+  },
+  "rewrites": [
+    {
+      "source": "/api/tiny/(.*)",
+      "destination": "/api/proxy-tiny.js"
+    }
+  ]
+}
