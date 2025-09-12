@@ -1,10 +1,27 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Package, ShoppingCart, Wrench, BarChart3, Users, GitBranch, Send, CheckCircle, Truck, Receipt } from 'lucide-react';
+import { Package, Wrench, BarChart3, Users, Truck, Receipt } from 'lucide-react';
 
 const ProductionBreakdown = ({ data, detailed = false }) => {
-  const { itemsSold, itemsInProduction, itemsProduced, wipByStage, capacity, demand, preparandoEnvio, faturado } = data;
-  const totalItems = Object.values(wipByStage).reduce((a, b) => a + b, 0);
+  // Validação de dados para evitar erros
+  if (!data) {
+    return (
+      <div className="text-center text-gray-500 p-4">
+        <p>Carregando dados de produção...</p>
+      </div>
+    );
+  }
+
+  const { 
+    itemsInProduction = 0, 
+    wipByStage = {}, 
+    capacity = 0, 
+    demand = 0, 
+    preparandoEnvio = 0, 
+    faturado = 0 
+  } = data;
+  
+  const totalItems = Object.values(wipByStage).reduce((a, b) => a + (b || 0), 0);
 
   const cardVariants = {
     hidden: { opacity: 0, y: 20 },
@@ -19,13 +36,8 @@ const ProductionBreakdown = ({ data, detailed = false }) => {
   };
 
   const stages = [
-    { name: 'Vendido', count: wipByStage['Vendido'] || 0, icon: <ShoppingCart className="text-blue-400" />, color: 'blue' },
     { name: 'Em Desenvolvimento', count: wipByStage['Em Desenvolvimento'] || 0, icon: <Wrench className="text-orange-400" />, color: 'orange' },
     { name: 'Em Produção', count: wipByStage['Em Produção'] || 0, icon: <Package className="text-yellow-400" />, color: 'yellow' },
-    { name: 'Preparando Envio', count: wipByStage['Preparando Envio'] || 0, icon: <Package className="text-yellow-400" />, color: 'yellow' },
-    { name: 'Faturado', count: wipByStage['Faturado'] || 0, icon: <Package className="text-green-400" />, color: 'green' },
-    { name: 'Enviado', count: wipByStage['Enviado'] || 0, icon: <Send className="text-indigo-400" />, color: 'indigo' },
-    { name: 'Entregue', count: wipByStage['Entregue'] || 0, icon: <CheckCircle className="text-teal-400" />, color: 'teal' },
   ];
 
   return (
@@ -33,7 +45,7 @@ const ProductionBreakdown = ({ data, detailed = false }) => {
       initial={{ opacity: 0, scale: 0.95 }}
       animate={{ opacity: 1, scale: 1 }}
       transition={{ duration: 0.5, delay: 0.3 }}
-      className="glass-effect rounded-xl p-6 h-full flex flex-col"
+      className="glass-effect rounded-xl p-6 h-full flex flex-col max-h-[750px] overflow-hidden"
     >
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-2xl font-bold text-white flex items-center">
@@ -44,14 +56,21 @@ const ProductionBreakdown = ({ data, detailed = false }) => {
 
       <div className="grid grid-cols-2 md:grid-cols-2 gap-4 mb-6">
         <motion.div variants={cardVariants} initial="hidden" animate="visible" custom={1} className="bg-gradient-to-br from-blue-500/20 to-cyan-500/20 rounded-lg p-4 border border-blue-500/30">
-          <h3 className="text-sm font-medium text-blue-300 mb-2 flex items-center"><Users className="w-4 h-4 mr-2"/>Carga da Semana</h3>
+          <h3 className="text-sm font-medium text-blue-300 mb-2 flex items-center"><Users className="w-4 h-4 mr-2"/>Pedidos da Semana</h3>
           <p className="text-3xl font-bold text-white">{demand}</p>
           <p className="text-xs text-gray-400">/ {capacity} de capacidade</p>
         </motion.div>
         <motion.div variants={cardVariants} initial="hidden" animate="visible" custom={2} className="bg-gradient-to-br from-yellow-500/20 to-orange-500/20 rounded-lg p-4 border border-yellow-500/30">
-          <h3 className="text-sm font-medium text-yellow-300 mb-2 flex items-center"><Package className="w-4 h-4 mr-2"/>WIP Total</h3>
+          <h3 className="text-sm font-medium text-yellow-300 mb-2 flex items-center"><Package className="w-4 h-4 mr-2"/>Itens em Produção</h3>
           <p className="text-3xl font-bold text-white">{itemsInProduction}</p>
-          <p className="text-xs text-gray-400">Itens em produção</p>
+          <p className="text-xs text-gray-400">Em aberto, Aprovado, Preparando envio e Faturado</p>
+          {data.wipCalculationMethod && (
+            <p className="text-xs text-yellow-200 mt-1">
+              {data.wipCalculationMethod === 'warehouse' ? '🏪 Data Warehouse' : 
+               data.wipCalculationMethod === 'api' ? '📊 API Real' : 
+               data.wipCalculationMethod === 'real' ? '📊 Quantidade real' : '📋 Contagem de pedidos'}
+            </p>
+          )}
         </motion.div>
       </div>
 
@@ -68,8 +87,8 @@ const ProductionBreakdown = ({ data, detailed = false }) => {
         </div>
       </div>
 
-      <h3 className="text-lg font-semibold text-white mb-4">Itens por Estágio (Kanban)</h3>
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 flex-grow">
+      <h3 className="text-lg font-semibold text-white mb-4">Itens por Estágio</h3>
+      <div className="grid grid-cols-2 lg:grid-cols-2 gap-2 flex-grow overflow-y-auto">
         {stages.map((stage, i) => (
           <motion.div
             key={stage.name}

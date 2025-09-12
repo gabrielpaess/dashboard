@@ -6,9 +6,18 @@ import AfterSalesAlerts from '@/components/AfterSalesAlerts';
 const OverviewView = ({
   data
 }) => {
+  // Validação de dados para evitar erros
+  if (!data) {
+    return (
+      <div className="text-center text-gray-500 p-8">
+        <p>Carregando visão geral...</p>
+      </div>
+    );
+  }
+
   const {
-    productionData,
-    orders
+    productionData = {},
+    orders = []
   } = data;
   const cardVariants = {
     hidden: {
@@ -35,33 +44,29 @@ const OverviewView = ({
     duration: 0.5
   }}>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <motion.div variants={cardVariants} initial="hidden" animate="visible" custom={1} className="glass-effect rounded-xl p-6 text-center">
+        <motion.div variants={cardVariants} initial="hidden" animate="visible" custom={1} className="glass-effect rounded-xl p-6 text-center h-40 flex flex-col justify-center">
           <ShoppingCart className="w-10 h-10 mx-auto mb-3 text-blue-400" />
-          <h3 className="text-lg font-semibold text-blue-400">Itens Vendidos</h3>
-          <p className="text-4xl font-bold text-white mt-2">{wip['Vendido'] || 0}</p>
-          <p className="text-sm text-gray-400">Aguardando produção</p>
+          <h3 className="text-lg font-semibold text-blue-400 mb-2">Total de Vendas</h3>
+          <p className="text-4xl font-bold text-white mb-1">{wip['Total Ativos'] || 0}</p>
+          <p className="text-sm text-gray-400">Total de pedidos</p>
         </motion.div>
-        <motion.div variants={cardVariants} initial="hidden" animate="visible" custom={3} className="glass-effect rounded-xl p-6 text-center">
+        <motion.div variants={cardVariants} initial="hidden" animate="visible" custom={3} className="glass-effect rounded-xl p-6 text-center h-40 flex flex-col justify-center">
           <Wrench className="w-10 h-10 mx-auto mb-3 text-orange-400" />
-          <h3 className="text-lg font-semibold text-orange-400">Em Desenvolvimento</h3>
-          <p className="text-4xl font-bold text-white mt-2">{wip['Em Desenvolvimento'] || 0}</p>
+          <h3 className="text-lg font-semibold text-orange-400 mb-2">Em Desenvolvimento</h3>
+          <p className="text-4xl font-bold text-white mb-1">{wip['Em Desenvolvimento'] || 0}</p>
           <p className="text-sm text-gray-400">Itens personalizados</p>
         </motion.div>
-        <motion.div variants={cardVariants} initial="hidden" animate="visible" custom={2} className="glass-effect rounded-xl p-6 text-center">
+        <motion.div variants={cardVariants} initial="hidden" animate="visible" custom={2} className="glass-effect rounded-xl p-6 text-center h-40 flex flex-col justify-center">
           <Package className="w-10 h-10 mx-auto mb-3 text-yellow-400" />
-          <h3 className="text-lg font-semibold text-yellow-400">Em Produção</h3>
-          <p className="text-4xl font-bold text-white mt-2">{wip['Em Produção'] || 0}</p>
+          <h3 className="text-lg font-semibold text-yellow-400 mb-2">Em Produção</h3>
+          <p className="text-4xl font-bold text-white mb-1">{wip['Em Produção'] || 0}</p>
           <p className="text-sm text-gray-400">Na linha de montagem</p>
         </motion.div>
       </div>
       
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2">
-          <DeliveryStatus orders={orders} />
-        </div>
-        <div>
-          <AfterSalesAlerts orders={orders} />
-        </div>
+      <div className="space-y-6">
+        <DeliveryStatus orders={orders} />
+        <AfterSalesAlerts orders={orders} />
       </div>
     </motion.div>;
 };

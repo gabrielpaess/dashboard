@@ -6,11 +6,20 @@ import { Input } from '@/components/ui/input';
 import { toast } from '@/components/ui/use-toast';
 
 const SalesGoals = ({ data }) => {
+  // Validação de dados para evitar erros
+  if (!data || !data.daily || !data.weekly || !data.monthly) {
+    return (
+      <div className="text-center text-gray-500 p-4">
+        <p>Carregando metas de vendas...</p>
+      </div>
+    );
+  }
+
   const [isEditing, setIsEditing] = useState(false);
   const [goals, setGoals] = useState({
-    daily: data.daily.goal,
-    weekly: data.weekly.goal,
-    monthly: data.monthly.goal
+    daily: data.daily?.goal || 7000,
+    weekly: data.weekly?.goal || 45000,
+    monthly: data.monthly?.goal || 200000
   });
 
   const handleSaveGoals = () => {

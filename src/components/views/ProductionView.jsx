@@ -4,6 +4,15 @@ import DeliveryStatus from '@/components/DeliveryStatus';
 import { motion } from 'framer-motion';
 
 const ProductionView = ({ data }) => {
+  // Validação de dados para evitar erros
+  if (!data) {
+    return (
+      <div className="text-center text-gray-500 p-8">
+        <p>Carregando dados de produção...</p>
+      </div>
+    );
+  }
+
   return (
     <motion.div 
       className="space-y-6"
@@ -12,8 +21,8 @@ const ProductionView = ({ data }) => {
       transition={{ duration: 0.5 }}
     >
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <ProductionBreakdown data={data.productionData} />
-        <DeliveryStatus orders={data.orders} />
+        <ProductionBreakdown data={data.productionData || {}} />
+        <DeliveryStatus orders={data.orders || []} />
       </div>
     </motion.div>
   );

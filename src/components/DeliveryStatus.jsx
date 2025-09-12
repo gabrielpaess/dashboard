@@ -10,8 +10,25 @@ const DeliveryStatus = ({ orders, detailed = false }) => {
   const [expandedOrder, setExpandedOrder] = useState(null);
   const [showAllOrders, setShowAllOrders] = useState(false);
   
+  // Função auxiliar para formatar datas
+  const formatDate = (date) => {
+    if (!date) return 'Não informado';
+    if (typeof date === 'string') return date;
+    if (date instanceof Date) return date.toLocaleDateString('pt-BR');
+    return 'Data inválida';
+  };
+  
+  // Validação de dados para evitar erros
+  if (!orders || !Array.isArray(orders)) {
+    return (
+      <div className="text-center text-gray-500 p-4">
+        <p>Carregando status de entrega...</p>
+      </div>
+    );
+  }
+  
   // Filtrar pedidos cancelados
-  const activeOrders = orders.filter(order => order.situacao !== 'Cancelado');
+  const activeOrders = orders.filter(order => order && order.situacao !== 'Cancelado');
   
   // Determinar quantos pedidos mostrar
   const ordersToShow = showAllOrders ? activeOrders : activeOrders.slice(0, 5);
@@ -22,11 +39,11 @@ const DeliveryStatus = ({ orders, detailed = false }) => {
     }
     switch (status) {
       case 'on-time':
-        return { icon: <CheckCircle className="w-4 h-4 text-green-400" />, text: 'No Prazo', className: 'status-on-time' };
+        return { icon: <CheckCircle className="w-4 h-4 text-green-400" />, text: 'No Prazo', className: 'bg-green-500/20 text-green-400 border-green-500/30' };
       case 'risk':
-        return { icon: <Clock className="w-4 h-4 text-yellow-400" />, text: willBeLate ? 'Vai Atrasar' : 'Em Risco', className: 'status-risk' };
+        return { icon: <Clock className="w-4 h-4 text-yellow-400" />, text: 'Em Risco', className: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30' };
       case 'late':
-        return { icon: <AlertTriangle className="w-4 h-4 text-red-400" />, text: 'Atrasado', className: 'status-late' };
+        return { icon: <AlertTriangle className="w-4 h-4 text-red-400" />, text: 'Atrasado', className: 'bg-red-500/20 text-red-400 border-red-500/30' };
       case 'delivered':
         return { icon: <CheckCircle className="w-4 h-4 text-purple-400" />, text: 'Entregue', className: 'bg-purple-500/20 text-purple-400 border-purple-500/30' };
       case 'cancelled':
@@ -108,22 +125,22 @@ const DeliveryStatus = ({ orders, detailed = false }) => {
       </div>
 
       <div className="grid grid-cols-4 gap-4 mb-6">
-        <div className="status-on-time rounded-lg p-3 text-center border">
+        <div className="status-on-time rounded-lg p-4 text-center border h-24 flex flex-col justify-center">
           <CheckCircle className="w-6 h-6 mx-auto mb-2" />
           <p className="text-lg font-bold">{activeStatusCounts['on-time'] || 0}</p>
           <p className="text-xs">No Prazo</p>
         </div>
-        <div className="status-risk rounded-lg p-3 text-center border">
+        <div className="status-risk rounded-lg p-4 text-center border h-24 flex flex-col justify-center">
           <Clock className="w-6 h-6 mx-auto mb-2" />
           <p className="text-lg font-bold">{activeStatusCounts['risk'] || 0}</p>
           <p className="text-xs">Em Risco</p>
         </div>
-        <div className="status-late rounded-lg p-3 text-center border">
+        <div className="status-late rounded-lg p-4 text-center border h-24 flex flex-col justify-center">
           <AlertTriangle className="w-6 h-6 mx-auto mb-2" />
           <p className="text-lg font-bold">{activeStatusCounts['late'] || 0}</p>
           <p className="text-xs">Atrasados</p>
         </div>
-        <div className="bg-purple-500/20 text-purple-400 border-purple-500/30 rounded-lg p-3 text-center border">
+        <div className="bg-purple-500/20 text-purple-400 border-purple-500/30 rounded-lg p-4 text-center border h-24 flex flex-col justify-center">
           <CheckCircle className="w-6 h-6 mx-auto mb-2" />
           <p className="text-lg font-bold">{activeStatusCounts['delivered'] || 0}</p>
           <p className="text-xs">Entregues</p>
@@ -137,6 +154,28 @@ const DeliveryStatus = ({ orders, detailed = false }) => {
             {activeOrders.length} pedidos ativos
           </div>
         </div>
+        
+        {/* Cabeçalho da listagem - Desktop */}
+        <div className="hidden lg:grid grid-cols-12 gap-4 items-center mb-3 px-4 py-2 bg-black/20 rounded-lg border border-white/10">
+          <div className="col-span-2">
+            <p className="text-xs font-medium text-gray-400 uppercase tracking-wide">Pedido</p>
+          </div>
+          <div className="col-span-4">
+            <p className="text-xs font-medium text-gray-400 uppercase tracking-wide">Cliente</p>
+          </div>
+          <div className="col-span-2 text-center">
+            <p className="text-xs font-medium text-gray-400 uppercase tracking-wide">Status</p>
+          </div>
+          <div className="col-span-2 text-center">
+            <p className="text-xs font-medium text-gray-400 uppercase tracking-wide">Data</p>
+          </div>
+          <div className="col-span-1 text-center">
+            <p className="text-xs font-medium text-gray-400 uppercase tracking-wide">Dias</p>
+          </div>
+          <div className="col-span-1 text-center">
+            <p className="text-xs font-medium text-gray-400 uppercase tracking-wide">Ações</p>
+          </div>
+        </div>
         {ordersToShow.map((order, index) => {
           const { icon, text, className } = getStatusInfo(order.status, order.willBeLate, order.deliveryDate);
           return (
@@ -145,39 +184,112 @@ const DeliveryStatus = ({ orders, detailed = false }) => {
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.3, delay: index * 0.1 }}
-              className={`p-3 rounded-lg border ${className}`}
+              className={`p-4 rounded-lg border ${className} min-h-[80px]`}
             >
-              <div className="flex items-center justify-between cursor-pointer" onClick={() => setExpandedOrder(expandedOrder === order.id ? null : order.id)}>
-                <div className="flex items-center space-x-3">
-                  {icon}
-                  <div>
-                    <p className="font-medium text-white">{order.order_id}</p>
-                    <p className="text-sm text-gray-300">{order.customer}</p>
+              <div 
+                className="cursor-pointer" 
+                onClick={() => setExpandedOrder(expandedOrder === order.id ? null : order.id)}
+              >
+                {/* Layout Desktop */}
+                <div className="hidden lg:grid grid-cols-12 gap-4 items-center">
+                  {/* Coluna 1: Ícone e ID do Pedido (2 colunas) */}
+                  <div className="col-span-2 flex items-center space-x-3">
+                    {icon}
+                    <div>
+                      <p className="font-medium text-white text-sm">{order.order_id}</p>
+                    </div>
                   </div>
-                </div>
-                
-                <div className="text-center">
-                  <p className="text-sm font-medium">{text}</p>
-                  {order.willBeLate && <p className="text-xs text-yellow-300 animate-pulse">Previsão de Atraso</p>}
-                </div>
-
-                <div className="text-right">
-                  <p className="text-xs text-gray-400">{order.deliveryDate ? 'Entregue em' : 'Prometido'}</p>
-                  <p className="text-sm font-medium text-white">{format(order.deliveryDate || order.promisedDate, 'dd/MM/yyyy')}</p>
-                </div>
-                
-                {!order.deliveryDate && (
-                  <div className="text-right">
-                    <p className="text-xs text-gray-400">Dias Restantes</p>
-                    <p className={`text-sm font-medium ${order.diasRestantes < 0 ? 'text-red-400' : order.diasRestantes <= 2 ? 'text-yellow-400' : 'text-green-400'}`}>
-                      {order.diasRestantes < 0 ? `${Math.abs(order.diasRestantes)} atrasado` : `${order.diasRestantes} dias`}
+                  
+                  {/* Coluna 2: Nome do Cliente (4 colunas) */}
+                  <div className="col-span-4">
+                    <p className="text-sm text-gray-300 truncate" title={order.customer}>
+                      {order.customer}
                     </p>
                   </div>
-                )}
+                  
+                  {/* Coluna 3: Status (2 colunas) */}
+                  <div className="col-span-2 text-center">
+                    <p className="text-sm font-medium">{text}</p>
+                    {order.willBeLate && (
+                      <p className="text-xs text-yellow-300 animate-pulse mt-1">
+                        Previsão de Atraso
+                      </p>
+                    )}
+                  </div>
 
-                <Button variant="ghost" size="icon" className="text-white hover:bg-white/10">
-                  {expandedOrder === order.id ? <ChevronDown className="w-5 h-5" /> : <ChevronRight className="w-5 h-5" />}
-                </Button>
+                  {/* Coluna 4: Data Prometida/Entregue (2 colunas) */}
+                  <div className="col-span-2 text-center">
+                    <p className="text-xs text-gray-400">
+                      {order.deliveryDate ? 'Entregue em' : 'Prometido'}
+                    </p>
+                    <p className="text-sm font-medium text-white truncate" title={formatDate(order.deliveryDate || order.promisedDate)}>
+                      {formatDate(order.deliveryDate || order.promisedDate)}
+                    </p>
+                  </div>
+                  
+                  {/* Coluna 5: Dias Restantes (1 coluna) */}
+                  {!order.deliveryDate && order.diasRestantes !== null && (
+                    <div className="col-span-1 text-center">
+                      <p className="text-xs text-gray-400">Dias</p>
+                      <p className={`text-sm font-medium ${order.diasRestantes < 0 ? 'text-red-400' : order.diasRestantes <= 2 ? 'text-yellow-400' : 'text-green-400'}`}>
+                        {order.diasRestantes < 0 ? `${Math.abs(order.diasRestantes)}` : `${order.diasRestantes}`}
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Coluna 6: Botão de Expansão (1 coluna) */}
+                  <div className="col-span-1 flex justify-center">
+                    <div className="text-white">
+                      {expandedOrder === order.id ? <ChevronDown className="w-5 h-5" /> : <ChevronRight className="w-5 h-5" />}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Layout Mobile/Tablet */}
+                <div className="lg:hidden">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center space-x-3">
+                      {icon}
+                      <div>
+                        <p className="font-medium text-white text-sm">#{order.order_id}</p>
+                        <p className="text-xs text-gray-400">{order.customer}</p>
+                      </div>
+                    </div>
+                    <div className="text-white">
+                      {expandedOrder === order.id ? <ChevronDown className="w-5 h-5" /> : <ChevronRight className="w-5 h-5" />}
+                    </div>
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <p className="text-xs text-gray-400">Status</p>
+                      <p className="font-medium">{text}</p>
+                      {order.willBeLate && (
+                        <p className="text-xs text-yellow-300 animate-pulse">
+                          Previsão de Atraso
+                        </p>
+                      )}
+                    </div>
+                    
+                    <div>
+                      <p className="text-xs text-gray-400">
+                        {order.deliveryDate ? 'Entregue em' : 'Prometido'}
+                      </p>
+                      <p className="font-medium text-white">
+                        {formatDate(order.deliveryDate || order.promisedDate)}
+                      </p>
+                    </div>
+                    
+                    {!order.deliveryDate && order.diasRestantes !== null && (
+                      <div className="col-span-2">
+                        <p className="text-xs text-gray-400">Dias Restantes</p>
+                        <p className={`font-medium ${order.diasRestantes < 0 ? 'text-red-400' : order.diasRestantes <= 2 ? 'text-yellow-400' : 'text-green-400'}`}>
+                          {order.diasRestantes < 0 ? `${Math.abs(order.diasRestantes)} atrasado` : `${order.diasRestantes} dias`}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
               </div>
               <AnimatePresence>
                 {expandedOrder === order.id && (
@@ -198,7 +310,7 @@ const DeliveryStatus = ({ orders, detailed = false }) => {
                              <span>{item.sku} - {item.title}</span>
                            </div>
                            <span className="font-semibold">{item.stage}</span>
-                           <span>ETA: {format(new Date(item.stage_eta_at), 'dd/MM')}</span>
+                           <span>ETA: {formatDate(item.stage_eta_at)}</span>
                          </div>
                        ))}
                     </div>
