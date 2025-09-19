@@ -1,6 +1,6 @@
 import path from 'node:path';
 import react from '@vitejs/plugin-react';
-import { createLogger, defineConfig } from 'vite';
+import { createLogger, defineConfig, loadEnv } from 'vite';
 
 const isDev = process.env.NODE_ENV !== 'production';
 let inlineEditPlugin, editModeDevPlugin;
@@ -211,13 +211,17 @@ logger.error = (msg, options) => {
 	loggerError(msg, options);
 }
 
-export default defineConfig({
-	customLogger: logger,
-	plugins: [
-		...(isDev && inlineEditPlugin && editModeDevPlugin ? [inlineEditPlugin(), editModeDevPlugin()] : []),
-		react(),
-		addTransformIndexHtml
-	],
+export default defineConfig(({ mode }) => {
+	// Carregar variáveis de ambiente
+	const env = loadEnv(mode, process.cwd(), '');
+	
+	return {
+		customLogger: logger,
+		plugins: [
+			...(isDev && inlineEditPlugin && editModeDevPlugin ? [inlineEditPlugin(), editModeDevPlugin()] : []),
+			react(),
+			addTransformIndexHtml
+		],
 	server: {
 		cors: true,
 		headers: {
@@ -256,4 +260,5 @@ export default defineConfig({
 			]
 		}
 	}
+	};
 });
