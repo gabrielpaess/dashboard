@@ -305,6 +305,8 @@ const Dashboard = ({
   };
 
   const fetchOrders = useCallback(async (isManualRefresh = false, useFilter = false) => {
+    console.log('🔍 Dashboard - Iniciando fetchOrders...', { isManualRefresh, useFilter });
+    
     if (isManualRefresh) {
       setRefreshing(true);
     } else {
@@ -312,6 +314,7 @@ const Dashboard = ({
     }
     
     try {
+      console.log('🔍 Dashboard - Verificando orderRepository...', { orderRepository });
 
       // Usar nova arquitetura com repositório
       const filters = useFilter && appliedStartDate && appliedEndDate ? {
@@ -319,8 +322,13 @@ const Dashboard = ({
         dataFinal: appliedEndDate
       } : {};
       
+      console.log('🔍 Dashboard - Filtros aplicados:', filters);
+      
       // Buscar dados do Supabase usando nova arquitetura
+      console.log('🔍 Dashboard - Chamando orderRepository.getSupabaseOrders...');
       const response = await orderRepository.getSupabaseOrders(filters);
+      
+      console.log('🔍 Dashboard - Resposta do orderRepository:', response);
       
       if (!response.success) {
         throw new Error('Falha ao buscar dados do Supabase');

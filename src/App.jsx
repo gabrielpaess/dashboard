@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Helmet } from 'react-helmet';
 import Dashboard from '@/components/Dashboard';
 import LoadingScreen from '@/components/LoadingScreen';
+import TestSimple from '@/test-simple';
 import { Toaster } from '@/components/ui/toaster';
 import { authService } from '@/services/authServiceSimple';
 
@@ -19,16 +20,29 @@ function App() {
   useEffect(() => {
     const checkAuthentication = () => {
       try {
+        console.log('🔍 App - Iniciando verificação de autenticação...');
+        
         const authenticated = authService.isLoggedIn();
         const currentUser = authService.getCurrentUser();
         
-        console.log('🔍 App - Verificando autenticação:', { authenticated, currentUser });
+        console.log('🔍 App - Verificando autenticação:', { 
+          authenticated, 
+          currentUser,
+          authServiceState: {
+            isAuthenticated: authService.isAuthenticated,
+            userLevel: authService.userLevel,
+            currentUser: authService.currentUser
+          }
+        });
         
         setIsAuthenticated(authenticated);
         setUser(currentUser);
         setAuthChecked(true);
+        
+        console.log('✅ App - Estado de autenticação definido:', { authenticated, currentUser });
       } catch (error) {
         console.error('❌ App - Erro ao verificar autenticação:', error);
+        console.error('❌ App - Stack trace:', error.stack);
         setIsAuthenticated(false);
         setUser(null);
         setAuthChecked(true);
@@ -37,7 +51,10 @@ function App() {
 
     // Verificar autenticação após o loading inicial
     if (!isLoading) {
+      console.log('🔍 App - Loading completo, verificando autenticação...');
       checkAuthentication();
+    } else {
+      console.log('⏳ App - Ainda carregando...');
     }
   }, [isLoading]);
 
@@ -95,13 +112,14 @@ function App() {
         </div>
       ) : (
         <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-indigo-900 text-slate-50">
-          <Dashboard 
+          <TestSimple />
+          {/* <Dashboard 
             isAuthenticated={isAuthenticated}
             user={user}
             onLoginSuccess={handleLoginSuccess}
             onLogout={handleLogout}
           />
-          <Toaster />
+          <Toaster /> */}
         </div>
       )}
     </>

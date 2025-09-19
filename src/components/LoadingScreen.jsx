@@ -5,12 +5,18 @@ const LoadingScreen = ({ onComplete }) => {
   const [progress, setProgress] = useState(0);
 
   useEffect(() => {
+    console.log('🔄 LoadingScreen - Iniciando animação de carregamento...');
+    
     // Animar progresso em 3 segundos
     const progressTimer = setInterval(() => {
       setProgress(prev => {
         if (prev >= 100) {
+          console.log('✅ LoadingScreen - Progresso completo, finalizando...');
           clearInterval(progressTimer);
-          setTimeout(() => onComplete(), 300); // Aguardar 300ms antes de completar
+          setTimeout(() => {
+            console.log('✅ LoadingScreen - Chamando onComplete...');
+            onComplete();
+          }, 300); // Aguardar 300ms antes de completar
           return 100;
         }
         return prev + 1.5; // Mais suave: 100% em ~67 steps
@@ -18,6 +24,7 @@ const LoadingScreen = ({ onComplete }) => {
     }, 45); // 3 segundos total (3000ms / 67 steps = 45ms)
 
     return () => {
+      console.log('🔄 LoadingScreen - Limpando timer...');
       clearInterval(progressTimer);
     };
   }, [onComplete]);
