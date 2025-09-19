@@ -7,7 +7,7 @@ import { createClient } from '@supabase/supabase-js';
 
 export class SimpleOrderRepository {
   constructor(config = {}) {
-    // Configuração direta do Supabase
+    // Configuração direta do Supabase - valores padrão para evitar erros
     const supabaseUrl = config.supabase?.url || 
       (typeof window !== 'undefined' && import.meta?.env?.VITE_SUPABASE_URL) ||
       'https://jpkpifxctubvauwjvimd.supabase.co';
@@ -15,6 +15,11 @@ export class SimpleOrderRepository {
     const supabaseKey = config.supabase?.anonKey || 
       (typeof window !== 'undefined' && import.meta?.env?.VITE_SUPABASE_ANON_KEY) ||
       'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Impwa3BpZnhjdHVidmF1d2p2aW1kIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTY5ODg2NDYsImV4cCI6MjA3MjU2NDY0Nn0.A7cXsrpIsN4TdEIV77wWRSBa-kf9YlHv-vZARlm2p20';
+    
+    console.log('🔧 SimpleOrderRepository: Configurando Supabase...', {
+      url: supabaseUrl ? '✅' : '❌',
+      key: supabaseKey ? '✅' : '❌'
+    });
     
     this.supabase = createClient(supabaseUrl, supabaseKey);
   }

@@ -54,8 +54,12 @@ export const tinyOrderService = new TinyOrderService(apiConfig.getTinyConfig());
 export const supabaseOrderService = new SupabaseOrderService(apiConfig.getSupabaseConfig());
 export const instagramConversationService = new InstagramConversationService(apiConfig.getInstagramConfig());
 // Usar SimpleOrderRepository no frontend (versão mais simples e confiável)
+// Não usar apiConfig para evitar dependências da API Tiny
 export const orderRepository = new SimpleOrderRepository({
-  supabase: apiConfig.getSupabaseConfig()
+  supabase: {
+    url: typeof window !== 'undefined' && import.meta?.env?.VITE_SUPABASE_URL || 'https://jpkpifxctubvauwjvimd.supabase.co',
+    anonKey: typeof window !== 'undefined' && import.meta?.env?.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Impwa3BpZnhjdHVidmF1d2p2aW1kIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTY5ODg2NDYsImV4cCI6MjA3MjU2NDY0Nn0.A7cXsrpIsN4TdEIV77wWRSBa-kf9YlHv-vZARlm2p20'
+  }
 });
 export const syncService = new SyncService({
   tiny: apiConfig.getTinyConfig(),
