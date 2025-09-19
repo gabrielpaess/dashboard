@@ -1,0 +1,61 @@
+name: Sync Dashboard Data
+
+# Executa a cada 4 horas para manter os dados atualizados
+on:
+  schedule:
+    # Cron: a cada 4 horas (0, 4, 8, 12, 16, 20)
+    - cron: '0 */4 * * *'
+  
+  # Permite execução manual
+  workflow_dispatch:
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Sync Dashboard Data
+      run: |
+        echo "🔄 Iniciando sincronização do dashboard..."
+        
+        # URL do seu dashboard na Vercel (substitua pela sua URL)
+        # Exemplo: https://dashboard-trend-quadros.vercel.app/api/sync-manual
+        SYNC_URL="https://dashboard-zeta-three-34.vercel.app/api/sync-manual"
+        
+        # Fazer a requisição para sincronização
+        response=$(curl -s -w "\n%{http_code}" -X GET "$SYNC_URL")
+        
+        # Separar o corpo da resposta do código de status
+        http_code=$(echo "$response" | tail -n1)
+        body=$(echo "$response" | head -n -1)
+        
+        echo "📊 Status HTTP: $http_code"
+        echo "📋 Resposta: $body"
+        
+        # Verificar se a sincronização foi bem-sucedida
+        if [ "$http_code" -eq 200 ]; then
+          echo "✅ Sincronização executada com sucesso!"
+          
+          # Extrair informações da resposta JSON (se disponível)
+          if command -v jq &> /dev/null; then
+            echo "📈 Detalhes:"
+            echo "$body" | jq '.data // empty'
+          fi
+        else
+          echo "❌ Erro na sincronização (HTTP $http_code)"
+          echo "📋 Detalhes do erro: $body"
+          exit 1
+        fi
+        
+    - name: Notify on Success
+      if: success()
+      run: |
+        echo "🎉 Sincronização concluída com sucesso!"
+        echo "⏰ Timestamp: $(date)"
+        
+    - name: Notify on Failure
+      if: failure()
+      run: |
+        echo "💥 Falha na sincronização!"
+        echo "⏰ Timestamp: $(date)"
+        echo "🔍 Verifique os logs acima para mais detalhes"
