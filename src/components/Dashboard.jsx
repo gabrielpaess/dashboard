@@ -13,7 +13,7 @@ import UserHeader from '@/components/UserHeader';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import { Eye, Wrench, DollarSign, Package, Bell } from 'lucide-react';
 import DateFilter from '@/components/DateFilter';
-import { orderRepository, syncService, validateAllConnections } from '@/services';
+import { orderRepository, validateAllConnections } from '@/services';
 import { authService } from '@/services/authServiceSimple';
 
 const Dashboard = ({ 
@@ -717,42 +717,11 @@ const Dashboard = ({
   };
 
   useEffect(() => {
-    // Função para executar sincronização automática
+    // Função para executar sincronização automática (removida - sincronização agora é feita no backend)
     const performAutoSync = async () => {
-      try {
-        await syncService.executeFullSync();
-        
-        // Se a sincronização foi bem-sucedida, resetar para intervalo normal
-        if (syncResult.success) {
-          setSyncInterval(900000); // 15 minutos
-          setLastSyncError(null);
-        }
-      } catch (error) {
-        console.error('❌ Erro na sincronização automática:', error);
-        
-        // Verificar se é erro de rate limiting
-        const isRateLimitError = error.message && (
-          error.message.includes('API Bloqueada') ||
-          error.message.includes('Excedido o número de acessos') ||
-          error.message.includes('rate limit') ||
-          error.message.includes('429')
-        );
-        
-        if (isRateLimitError) {
-          setSyncInterval(120000); // 2 minutos
-          setLastSyncError('rate_limit');
-          
-          toast({
-            variant: "destructive",
-            title: "Rate Limiting Detectado",
-            description: "Muitas requisições à API. Intervalo de sincronização ajustado para 2 minutos.",
-          });
-        } else {
-          // Para outros erros, usar intervalo padrão
-          setSyncInterval(900000); // 15 minutos
-          setLastSyncError('other');
-        }
-      }
+      // Sincronização agora é feita via GitHub Actions e APIs da Vercel
+      // Não precisa mais de sincronização no frontend
+      console.log('ℹ️ Sincronização automática desabilitada - usando GitHub Actions');
     };
 
     // Executar sincronização inicial
