@@ -57,8 +57,8 @@ export const instagramConversationService = new InstagramConversationService(api
 // Não usar apiConfig para evitar dependências da API Tiny
 export const orderRepository = new SimpleOrderRepository({
   supabase: {
-    url: typeof window !== 'undefined' && import.meta?.env?.VITE_SUPABASE_URL || 'https://jpkpifxctubvauwjvimd.supabase.co',
-    anonKey: typeof window !== 'undefined' && import.meta?.env?.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Impwa3BpZnhjdHVidmF1d2p2aW1kIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTY5ODg2NDYsImV4cCI6MjA3MjU2NDY0Nn0.A7cXsrpIsN4TdEIV77wWRSBa-kf9YlHv-vZARlm2p20'
+    url: 'https://jpkpifxctubvauwjvimd.supabase.co', // Hardcoded para garantir funcionamento
+    anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Impwa3BpZnhjdHVidmF1d2p2aW1kIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTY5ODg2NDYsImV4cCI6MjA3MjU2NDY0Nn0.A7cXsrpIsN4TdEIV77wWRSBa-kf9YlHv-vZARlm2p20' // Hardcoded para garantir funcionamento
   }
 });
 // export const syncService = new SyncService({ // Removido do frontend

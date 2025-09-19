@@ -1,6 +1,7 @@
 /**
  * Teste Simples para Verificar Carregamento
  * Componente mínimo para testar se o React está funcionando
+ * SEM dependências externas para evitar erros
  */
 
 import React from 'react';

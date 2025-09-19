@@ -7,7 +7,7 @@ import { createClient } from '@supabase/supabase-js';
 
 export class SimpleOrderRepository {
   constructor(config = {}) {
-    // Configuração direta do Supabase - valores padrão para evitar erros
+    // Configuração direta do Supabase - valores hardcoded para garantir funcionamento
     const supabaseUrl = config.supabase?.url || 
       (typeof window !== 'undefined' && import.meta?.env?.VITE_SUPABASE_URL) ||
       'https://jpkpifxctubvauwjvimd.supabase.co';
@@ -18,8 +18,23 @@ export class SimpleOrderRepository {
     
     console.log('🔧 SimpleOrderRepository: Configurando Supabase...', {
       url: supabaseUrl ? '✅' : '❌',
-      key: supabaseKey ? '✅' : '❌'
+      key: supabaseKey ? '✅' : '❌',
+      envVars: {
+        VITE_SUPABASE_URL: import.meta?.env?.VITE_SUPABASE_URL ? 'Configurada' : 'Não configurada',
+        VITE_SUPABASE_ANON_KEY: import.meta?.env?.VITE_SUPABASE_ANON_KEY ? 'Configurada' : 'Não configurada'
+      }
     });
+    
+    // Verificar se as URLs são válidas
+    if (!supabaseUrl || supabaseUrl === 'undefined') {
+      console.error('❌ SimpleOrderRepository: supabaseUrl inválida:', supabaseUrl);
+      throw new Error('supabaseUrl is required');
+    }
+    
+    if (!supabaseKey || supabaseKey === 'undefined') {
+      console.error('❌ SimpleOrderRepository: supabaseKey inválida:', supabaseKey);
+      throw new Error('supabaseKey is required');
+    }
     
     this.supabase = createClient(supabaseUrl, supabaseKey);
   }
