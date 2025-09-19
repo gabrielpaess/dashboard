@@ -35,6 +35,8 @@ const DEFAULT_VALUES = {
   VITE_SUPABASE_URL: 'https://jpkpifxctubvauwjvimd.supabase.co',
   VITE_SUPABASE_ANON_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Impwa3BpZnhjdHVidmF1d2p2aW1kIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTY5ODg2NDYsImV4cCI6MjA3MjU2NDY0Nn0.A7cXsrpIsN4TdEIV77wWRSBa-kf9YlHv-vZARlm2p20',
   SUPABASE_URL: 'https://jpkpifxctubvauwjvimd.supabase.co',
+  VITE_TINY_API_URL: 'https://api.tiny.com.br/api2',
+  TINY_API_URL: 'https://api.tiny.com.br/api2',
   CRON_SCHEDULE: '0 * * * *',
 };
 
@@ -52,6 +54,7 @@ export const config = {
   // Tiny API Configuration
   tiny: {
     token: getEnvVar('TINY_API_TOKEN') || getEnvVar('VITE_TINY_API_TOKEN'),
+    url: getEnvVar('TINY_API_URL') || getEnvVar('VITE_TINY_API_URL') || DEFAULT_VALUES.TINY_API_URL,
   },
   
   // Cron Job Configuration
