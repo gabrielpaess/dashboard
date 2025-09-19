@@ -79,7 +79,7 @@ const DevelopmentView = ({
           </div>
           <div className="bg-indigo-500/20 rounded-lg p-4 border border-indigo-500/30 text-center">
             <Calendar className="w-8 h-8 mx-auto mb-2 text-indigo-300" />
-            <p className="text-3xl font-bold text-white">{(projects || []).filter(p => p.status === 'Atrasado').length}</p>
+            <p className="text-3xl font-bold text-white">{(projects || []).filter(p => p.diasRestantes !== undefined && p.diasRestantes <= 2).length}</p>
             <p className="text-sm text-indigo-300">Gargalos Identificados</p>
             <p className="text-xs text-indigo-200">(≤2 dias de prazo)</p>
           </div>

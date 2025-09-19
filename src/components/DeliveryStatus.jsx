@@ -303,16 +303,21 @@ const DeliveryStatus = ({ orders, detailed = false }) => {
                     <div className="bg-black/20 rounded-md p-3 space-y-2">
                        <h4 className="text-sm font-semibold text-white">Itens do Pedido</h4>
                        {order.riskReason && <p className="text-xs text-yellow-300"><AlertTriangle className="inline w-3 h-3 mr-1" />Justificativa do risco: {order.riskReason}</p>}
-                       {order.items.map(item => (
-                         <div key={item.id} className="flex items-center justify-between text-xs p-2 rounded bg-white/5">
-                           <div className="flex items-center gap-2">
-                             {getItemStageIcon(item.stage)}
-                             <span>{item.sku} - {item.title}</span>
+                       {order.items && order.items.length > 0 ? (
+                         order.items.map((item, index) => (
+                           <div key={item.id || index} className="flex items-center text-xs p-2 rounded bg-white/5">
+                             <div className="flex items-center gap-2">
+                               {getItemStageIcon(item.stage)}
+                               <span className="text-gray-300">{item.title}</span>
+                             </div>
                            </div>
-                           <span className="font-semibold">{item.stage}</span>
-                           <span>ETA: {formatDate(item.stage_eta_at)}</span>
+                         ))
+                       ) : (
+                         <div className="text-center text-gray-400 py-4">
+                           <Package className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                           <p>Nenhum item encontrado para este pedido</p>
                          </div>
-                       ))}
+                       )}
                     </div>
                   </motion.div>
                 )}

@@ -2,12 +2,21 @@
   "functions": {
     "api/proxy-tiny.js": {
       "maxDuration": 30
+    },
+    "api/sync.js": {
+      "maxDuration": 300
     }
   },
   "rewrites": [
     {
       "source": "/api/tiny/(.*)",
       "destination": "/api/proxy-tiny.js"
+    }
+  ],
+  "crons": [
+    {
+      "path": "/api/sync",
+      "schedule": "*/15 * * * *"
     }
   ]
 }

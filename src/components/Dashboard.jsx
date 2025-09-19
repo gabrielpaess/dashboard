@@ -13,8 +13,7 @@ import UserHeader from '@/components/UserHeader';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import { Eye, Wrench, DollarSign, Package, Bell } from 'lucide-react';
 import DateFilter from '@/components/DateFilter';
-import { apiService } from '@/services/apiService';
-import { orderService } from '@/services/orderService';
+import { orderRepository, syncService, validateAllConnections } from '@/services';
 import { authService } from '@/services/authServiceSimple';
 
 const Dashboard = ({ 
@@ -56,11 +55,12 @@ const Dashboard = ({
   const [filterActive, setFilterActive] = useState(true); // Ativo por padrão
   const [appliedStartDate, setAppliedStartDate] = useState(getDefaultStartDate());
   const [appliedEndDate, setAppliedEndDate] = useState(getDefaultEndDate());
+  const [syncInterval, setSyncInterval] = useState(900000); // 15 minutos por padrão
+  const [lastSyncError, setLastSyncError] = useState(null);
   const { toast } = useToast();
 
   // Sincronizar com props do App
   useEffect(() => {
-    console.log('🔄 Dashboard - useEffect props:', { propIsAuthenticated, propUser });
     
     if (propIsAuthenticated !== undefined) {
       setIsAuthenticated(propIsAuthenticated);
@@ -95,7 +95,6 @@ const Dashboard = ({
           defaultTab = 'overview';
       }
       
-      console.log('🔄 Dashboard - Redirecionamento automático:', defaultTab, 'para usuário:', user.nome, 'nível:', userLevel);
       setActiveTab(defaultTab);
     }
   }, [isAuthenticated, user, loading]);
@@ -108,7 +107,6 @@ const Dashboard = ({
           const authenticated = authService.isLoggedIn();
           const currentUser = authService.getCurrentUser();
           
-          console.log('🔍 Dashboard - Verificando autenticação:', { authenticated, currentUser });
           
           setIsAuthenticated(authenticated);
           setUser(currentUser);
@@ -138,7 +136,6 @@ const Dashboard = ({
             
             setActiveTab(defaultTab);
             
-            console.log('🔄 Dashboard (fallback) - Redirecionando para aba:', defaultTab, 'para usuário:', currentUser.nome);
             
             // Mostrar toast de boas-vindas (com delay para evitar conflitos)
             // Temporariamente desabilitado para debug
@@ -196,7 +193,6 @@ const Dashboard = ({
       
       setActiveTab(defaultTab);
       
-      console.log('🔄 Dashboard (login) - Redirecionando para aba:', defaultTab, 'para usuário:', userData.nome);
       
       // Mostrar toast de boas-vindas (com delay para evitar conflitos)
       // Temporariamente desabilitado para debug
@@ -239,6 +235,75 @@ const Dashboard = ({
     return result;
   };
 
+  // Função para calcular status baseado na data prevista e situação
+  const calculateStatusBasedOnDate = (situacao, dataPrevista) => {
+    // Se já foi entregue ou cancelado, manter o status
+    if (situacao === 'Entregue') return 'delivered';
+    if (situacao === 'Cancelado') return 'cancelled';
+    if (situacao === 'Não Entregue') return 'not-delivered';
+    
+    // Se não tem data prevista, usar situação padrão
+    if (!dataPrevista) {
+      const statusMap = {
+        'Em aberto': 'processing',
+        'Aprovado': 'processing', 
+        'Preparando envio': 'processing',
+        'Faturado': 'invoiced',
+        'Pronto para envio': 'ready-to-ship',
+        'Enviado': 'shipped',
+        'Entregue': 'delivered',
+        'Não Entregue': 'not-delivered',
+        'Cancelado': 'cancelled'
+      };
+      return statusMap[situacao] || 'processing';
+    }
+    
+    // Calcular dias restantes
+    const hoje = new Date();
+    const dataPrev = new Date(dataPrevista);
+    const diffTime = dataPrev - hoje;
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    
+    // Determinar status baseado na data conforme especificações:
+    // data_prevista > 5: no prazo
+    // data_prevista <= 5: em risco  
+    // data_prevista <= 2: atrasado
+    if (diffDays <= 2) {
+      return 'late'; // Atrasado
+    } else if (diffDays <= 5) {
+      return 'risk'; // Em risco
+    } else {
+      return 'on-time'; // No prazo
+    }
+  };
+
+  // Função para calcular dias restantes
+  const calculateDaysRemaining = (dataPrevista) => {
+    if (!dataPrevista) return undefined;
+    const hoje = new Date();
+    const dataPrev = new Date(dataPrevista);
+    const diffTime = dataPrev - hoje;
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return diffDays;
+  };
+
+  // Função para ordenar pedidos por prioridade de SLA
+  const sortOrdersBySLA = (pedidos) => {
+    return pedidos.sort((a, b) => {
+      // Calcular dias restantes para cada pedido
+      const diasA = calculateDaysRemaining(a.data_prevista);
+      const diasB = calculateDaysRemaining(b.data_prevista);
+      
+      // Pedidos sem data prevista ficam por último
+      if (diasA === undefined && diasB === undefined) return 0;
+      if (diasA === undefined) return 1;
+      if (diasB === undefined) return -1;
+      
+      // Ordenar do mais atrasado (menor valor) para o menos atrasado (maior valor)
+      return diasA - diasB;
+    });
+  };
+
   const fetchOrders = useCallback(async (isManualRefresh = false, useFilter = false) => {
     if (isManualRefresh) {
       setRefreshing(true);
@@ -247,17 +312,318 @@ const Dashboard = ({
     }
     
     try {
-      console.log('🔄 Fetching data from Supabase (centralized)...');
 
-      // Usar apenas dados centralizados do Supabase
-      const dateFilter = useFilter && appliedStartDate && appliedEndDate ? {
-        startDate: appliedStartDate,
-        endDate: appliedEndDate
-      } : null;
+      // Usar nova arquitetura com repositório
+      const filters = useFilter && appliedStartDate && appliedEndDate ? {
+        dataInicial: appliedStartDate,
+        dataFinal: appliedEndDate
+      } : {};
       
-      // Processar dados diretamente do Supabase (sem API)
-      const processedData = await orderService.processOrderDataCentralized(dateFilter);
+      // Buscar dados do Supabase usando nova arquitetura
+      const response = await orderRepository.getSupabaseOrders(filters);
       
+      if (!response.success) {
+        throw new Error('Falha ao buscar dados do Supabase');
+      }
+      
+      // Processar dados para o formato esperado pelo dashboard
+      const pedidos = response.data || [];
+      
+      // Calcular total de pedidos excluindo os cancelados e não entregues
+      const totalPedidos = pedidos.filter(p => p.situacao !== 'Cancelado' && p.situacao !== 'Não Entregue').length;
+      const totalRevenue = pedidos.reduce((sum, pedido) => sum + (pedido.valor_total || 0), 0);
+      const averageOrderValue = totalPedidos > 0 ? totalRevenue / totalPedidos : 0;
+
+      // Calcular métricas por período (sempre baseado na data atual, não nos filtros)
+      const today = new Date();
+      
+      // Para as metas, sempre buscar dados sem filtros de data para calcular corretamente
+      let allPedidos = pedidos;
+      if (useFilter && appliedStartDate && appliedEndDate) {
+        // Se há filtros aplicados, buscar todos os pedidos para calcular as metas corretamente
+        const allResponse = await orderRepository.getSupabaseOrders({});
+        if (allResponse.success) {
+          allPedidos = allResponse.data || [];
+        }
+      }
+
+      const formatDate = (date) => date.toISOString().split('T')[0];
+
+      // Calcular períodos corretos para as metas
+      const todayStr = formatDate(today);
+      
+      // Meta diária: pedidos do dia atual
+      const dailyOrders = allPedidos.filter(p => p.data_pedido === todayStr);
+      
+      // Meta semanal: pedidos da semana atual (domingo a sábado)
+      const startOfWeek = new Date(today);
+      const day = today.getDay();
+      const diff = today.getDate() - day; // Domingo = 0, então diff = 0
+      startOfWeek.setDate(diff);
+      startOfWeek.setHours(0, 0, 0, 0);
+      
+      const endOfWeek = new Date(startOfWeek);
+      endOfWeek.setDate(startOfWeek.getDate() + 6); // Domingo + 6 = Sábado
+      endOfWeek.setHours(23, 59, 59, 999);
+      
+      const weeklyOrders = allPedidos.filter(p => {
+        if (!p.data_pedido) return false;
+        
+        // Criar data no fuso horário local para evitar problemas de UTC
+        const pedidoDate = new Date(p.data_pedido + 'T00:00:00');
+        if (isNaN(pedidoDate.getTime())) return false;
+        
+        return pedidoDate >= startOfWeek && pedidoDate <= endOfWeek;
+      });
+      
+      // Meta mensal: pedidos do mês atual
+      const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+      const endOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+      endOfMonth.setHours(23, 59, 59, 999);
+      
+      // Para exibição, usar o último dia do mês atual
+      const endOfMonthDisplay = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+      
+      const monthlyOrders = allPedidos.filter(p => {
+        if (!p.data_pedido) return false;
+        
+        // Criar data no fuso horário local para evitar problemas de UTC
+        const pedidoDate = new Date(p.data_pedido + 'T00:00:00');
+        if (isNaN(pedidoDate.getTime())) return false;
+        
+        // Verificar se está no mesmo mês e ano
+        const isSameMonth = pedidoDate.getMonth() === startOfMonth.getMonth() && 
+                           pedidoDate.getFullYear() === startOfMonth.getFullYear();
+        
+        return isSameMonth;
+      });
+
+      // Calcular receita por período
+      const dailyRevenue = dailyOrders.reduce((sum, p) => sum + (p.valor_total || 0), 0);
+      const weeklyRevenue = weeklyOrders.reduce((sum, p) => sum + (p.valor_total || 0), 0);
+      const monthlyRevenue = monthlyOrders.reduce((sum, p) => sum + (p.valor_total || 0), 0);
+
+      // Calcular WIP (Work in Progress) - situações de produção ativa
+      const situacoesProducao = ['Em aberto', 'Aprovado', 'Preparando envio', 'Preparando para envio', 'Faturado'];
+      const wipPedidos = pedidos.filter(p => situacoesProducao.includes(p.situacao));
+      const wipTotal = wipPedidos.reduce((sum, pedido) => {
+        if (pedido.itens_json && Array.isArray(pedido.itens_json)) {
+          return sum + pedido.itens_json.reduce((itemSum, item) => {
+            // Tentar ambas as estruturas: item.quantidade (estrutura real) ou item.item.quantidade (estrutura antiga)
+            const quantidade = parseFloat(item.quantidade || item.item?.quantidade || 0);
+            return itemSum + quantidade;
+          }, 0);
+        }
+        return sum;
+      }, 0);
+
+      // Calcular pedidos da semana com situações de produção
+      const weeklyProductionOrders = weeklyOrders.filter(p => situacoesProducao.includes(p.situacao));
+      
+
+
+
+      // Breakdown por situação
+      const breakdown = {};
+      pedidos.forEach(pedido => {
+        const situacao = pedido.situacao || 'Não informado';
+        if (!breakdown[situacao]) {
+          breakdown[situacao] = {
+            count: 0,
+            totalValue: 0,
+            pedidos: []
+          };
+        }
+        breakdown[situacao].count++;
+        breakdown[situacao].totalValue += pedido.valor_total || 0;
+        breakdown[situacao].pedidos.push(pedido);
+      });
+
+      
+      // Verificar variações de case sensitivity e possíveis variações de texto
+      const emAbertoCount = (breakdown['Em aberto']?.count || 0) + (breakdown['em aberto']?.count || 0);
+      const aprovadoCount = (breakdown['Aprovado']?.count || 0) + (breakdown['aprovado']?.count || 0);
+      
+      // Contagem mais robusta para "Preparando envio" e "Pronto para envio" - considerar todas as possíveis variações
+      let preparandoEnvioCount = 0;
+      let prontoParaEnvioCount = 0;
+      
+      Object.keys(breakdown).forEach(situacao => {
+        if (situacao && situacao.toLowerCase().includes('preparando')) {
+          preparandoEnvioCount += breakdown[situacao].count;
+        }
+        if (situacao && situacao.toLowerCase().includes('pronto')) {
+          prontoParaEnvioCount += breakdown[situacao].count;
+        }
+      });
+      
+      const faturadoCount = (breakdown['Faturado']?.count || 0) + (breakdown['faturado']?.count || 0);
+      
+      
+      
+      
+
+      const processedData = {
+        // Dados básicos
+        pedidos: pedidos,
+        totalPedidos: totalPedidos,
+        totalRevenue: totalRevenue,
+        averageOrderValue: averageOrderValue,
+
+        // Métricas de vendas (formato esperado pelos componentes)
+        salesMetrics: {
+          daily: {
+            current: dailyRevenue,
+            previous: 0, // Seria calculado com dados históricos
+            goal: 1000,
+            orders: dailyOrders.length,
+            period: todayStr
+          },
+          weekly: {
+            current: weeklyRevenue,
+            previous: 0, // Seria calculado com dados históricos
+            goal: 7000,
+            orders: weeklyOrders.length,
+            period: `${formatDate(startOfWeek)} - ${formatDate(endOfWeek)}`
+          },
+          monthly: {
+            current: monthlyRevenue,
+            previous: 0, // Seria calculado com dados históricos
+            goal: 30000,
+            orders: monthlyOrders.length,
+            period: `${formatDate(startOfMonth)} - ${formatDate(endOfMonthDisplay)}`
+          }
+        },
+
+        // Dados de produção
+        productionData: {
+          wip: {
+            totalItens: wipTotal,
+            totalPedidos: wipPedidos.length,
+            pedidos: wipPedidos
+          },
+          wipByStage: {
+            // Mapear breakdown para formato esperado pelo OverviewView
+            'Total Ativos': totalPedidos,
+            'Em Desenvolvimento': emAbertoCount + aprovadoCount,
+            'Em Produção': preparandoEnvioCount + faturadoCount,
+            'Preparando envio': preparandoEnvioCount,
+            'Pronto para envio': prontoParaEnvioCount,
+            'Faturado': faturadoCount,
+            'Enviado': breakdown['Enviado']?.count || 0,
+            'Entregue': breakdown['Entregue']?.count || 0,
+            'Não Entregue': breakdown['Não Entregue']?.count || 0,
+            'Cancelado': breakdown['Cancelado']?.count || 0
+          },
+          // Campos esperados pelo ProductionBreakdown
+          // Calcular itens em produção (somar quantidades dos itens_json)
+          itemsInProduction: (() => {
+            const situacoesItensProducao = ['Preparando envio', 'Faturado'];
+            const pedidosParaItensProducao = useFilter && appliedStartDate && appliedEndDate ? pedidos : allPedidos;
+            const itensProducaoPedidos = pedidosParaItensProducao.filter(p => situacoesItensProducao.includes(p.situacao));
+            
+            return itensProducaoPedidos.reduce((sum, pedido) => {
+              if (pedido.itens_json && Array.isArray(pedido.itens_json)) {
+                return sum + pedido.itens_json.reduce((itemSum, item) => {
+                  const quantidade = parseFloat(item.quantidade || item.item?.quantidade || 0);
+                  return itemSum + quantidade;
+                }, 0);
+              }
+              return sum;
+            }, 0);
+          })(),
+          capacity: 1000, // Capacidade estimada
+          demand: weeklyProductionOrders.length, // Pedidos da semana com situações de produção
+          preparandoEnvio: breakdown['Preparando envio']?.count || 0,
+          faturado: breakdown['Faturado']?.count || 0,
+          // Adicionar dados de debug
+          wipCalculationMethod: 'real',
+          weeklyProductionOrders: weeklyProductionOrders.length,
+          itensProducaoTotal: 0
+        },
+
+        // Dados de pedidos (mapeados para o formato esperado pelos componentes)
+        // Filtrar pedidos para SLA - excluir situações que não devem ser consideradas
+        orders: sortOrdersBySLA(pedidos.filter(pedido => {
+          const situacoesExcluidas = ['Cancelado', 'Enviado', 'Entregue', 'Não Entregue'];
+          return !situacoesExcluidas.includes(pedido.situacao);
+        }).map(pedido => {
+          const diasRestantes = calculateDaysRemaining(pedido.data_prevista);
+          const status = calculateStatusBasedOnDate(pedido.situacao, pedido.data_prevista);
+          
+          return {
+            ...pedido,
+            // Calcular status baseado na data prevista
+            status: status,
+            // Adicionar campos necessários para DeliveryStatus
+            willBeLate: diasRestantes !== undefined && diasRestantes <= 2 && diasRestantes >= 0,
+            deliveryDate: pedido.situacao === 'Entregue' ? new Date(pedido.data_prevista) : null,
+            promisedDate: pedido.data_prevista ? new Date(pedido.data_prevista) : null,
+            // Adicionar campos para cálculo de dias
+            diasRestantes: diasRestantes,
+            // Mapear campos do Supabase para formato esperado
+            order_id: pedido.numero || pedido.id,
+            customer: pedido.nome_cliente,
+            // Mapear itens para o formato esperado
+            items: Array.isArray(pedido.itens_json) ? pedido.itens_json.map((item, index) => ({
+              id: item.id || index,
+              sku: item.sku || item.codigo || 'N/A',
+              title: item.descricao || item.nome || item.titulo || 'Item sem descrição',
+              stage: item.etapa || item.stage || 'Pendente',
+              stage_eta_at: item.data_prevista || item.eta || null,
+              quantidade: item.quantidade || 1,
+              valor: item.valor || 0
+            })) : []
+          };
+        })),
+
+        // Breakdown por situação
+        breakdown: breakdown,
+
+        // Dados de desenvolvimento
+        developmentData: {
+          // Aprovar Arte = pedidos com situação "Em aberto"
+          backlog: emAbertoCount,
+          // Ajustar Arquivo = pedidos com situação "Aprovado" 
+          developedThisPeriod: aprovadoCount,
+          // Projetos em andamento = todos os pedidos "Em aberto" e "Aprovado" ordenados por prazo
+          projects: pedidos
+            .filter(p => {
+              const situacao = p.situacao?.toLowerCase() || '';
+              const isEmAberto = situacao === 'em aberto' || situacao === 'em_aberto' || situacao === 'emaberto';
+              const isAprovado = situacao === 'aprovado' || situacao === 'approved';
+              return isEmAberto || isAprovado;
+            })
+            .map(pedido => {
+              const diasRestantes = calculateDaysRemaining(pedido.data_prevista);
+              const status = calculateStatusBasedOnDate(pedido.situacao, pedido.data_prevista);
+              
+              // Determinar status para exibição
+              let statusDisplay = 'No Prazo';
+              if (status === 'late') statusDisplay = 'Atrasado';
+              else if (status === 'risk') statusDisplay = 'Em Risco';
+              else if (status === 'delivered') statusDisplay = 'Entregue';
+              else if (status === 'cancelled') statusDisplay = 'Cancelado';
+              
+              return {
+                id: pedido.id,
+                name: `Pedido #${pedido.numero} - ${pedido.nome_cliente}`,
+                status: statusDisplay,
+                situacao: pedido.situacao,
+                deadline: pedido.data_prevista ? new Date(pedido.data_prevista).toLocaleDateString('pt-BR') : 'Sem prazo',
+                diasRestantes: diasRestantes,
+                valor: pedido.valor_total || 0
+              };
+            })
+            .sort((a, b) => {
+              // Ordenar por dias restantes (menos dias = mais crítico)
+              if (a.diasRestantes === undefined && b.diasRestantes === undefined) return 0;
+              if (a.diasRestantes === undefined) return 1;
+              if (b.diasRestantes === undefined) return -1;
+              return a.diasRestantes - b.diasRestantes;
+            })
+        }
+      };
       
       setDashboardData(processedData);
       setLastUpdated(new Date());
@@ -351,18 +717,60 @@ const Dashboard = ({
   };
 
   useEffect(() => {
+    // Função para executar sincronização automática
+    const performAutoSync = async () => {
+      try {
+        await syncService.executeFullSync();
+        
+        // Se a sincronização foi bem-sucedida, resetar para intervalo normal
+        if (syncResult.success) {
+          setSyncInterval(900000); // 15 minutos
+          setLastSyncError(null);
+        }
+      } catch (error) {
+        console.error('❌ Erro na sincronização automática:', error);
+        
+        // Verificar se é erro de rate limiting
+        const isRateLimitError = error.message && (
+          error.message.includes('API Bloqueada') ||
+          error.message.includes('Excedido o número de acessos') ||
+          error.message.includes('rate limit') ||
+          error.message.includes('429')
+        );
+        
+        if (isRateLimitError) {
+          setSyncInterval(120000); // 2 minutos
+          setLastSyncError('rate_limit');
+          
+          toast({
+            variant: "destructive",
+            title: "Rate Limiting Detectado",
+            description: "Muitas requisições à API. Intervalo de sincronização ajustado para 2 minutos.",
+          });
+        } else {
+          // Para outros erros, usar intervalo padrão
+          setSyncInterval(900000); // 15 minutos
+          setLastSyncError('other');
+        }
+      }
+    };
+
+    // Executar sincronização inicial
+    performAutoSync();
+    
     // Carregar dados iniciais com filtro padrão (últimos 7 dias)
     fetchOrders(false, true); // useFilter = true para usar filtro padrão
     
-    // Atualizar dados a cada 15 minutos (900000ms) com filtro atual
-    // Intervalo aumentado para evitar exceder limite da API Tiny
+    // Atualizar dados com intervalo dinâmico
     const interval = setInterval(() => {
+      // Executar sincronização antes de buscar dados
+      performAutoSync();
       // Buscar dados com filtro atual (se ativo) ou sem filtro
       fetchOrders(false, filterActive);
-    }, 900000);
+    }, syncInterval);
     
     return () => clearInterval(interval);
-  }, [fetchOrders, filterActive, appliedStartDate, appliedEndDate]);
+  }, [fetchOrders, filterActive, appliedStartDate, appliedEndDate, syncInterval]);
 
   // useEffect separado para evitar re-renders desnecessários quando apenas startDate/endDate mudam
   useEffect(() => {
@@ -390,16 +798,6 @@ const Dashboard = ({
     return <Login onLoginSuccess={handleLoginSuccess} />;
   }
 
-  // Debug: Mostrar informações básicas
-  console.log('🔍 Dashboard renderizando:', { 
-    isAuthenticated, 
-    user, 
-    loading, 
-    dashboardData, 
-    activeTab,
-    propIsAuthenticated,
-    propUser 
-  });
 
   if (!dashboardData) {
     return (
@@ -488,10 +886,8 @@ const Dashboard = ({
         />
 
         <Tabs value={activeTab} onValueChange={(newValue) => {
-          console.log('🔄 Tabs onValueChange:', newValue);
           setActiveTab(newValue);
         }} className="w-full">
-          {console.log('🔍 Renderizando abas - activeTab:', activeTab, 'user:', user?.nivel)}
           <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 glass-effect p-1 h-auto gap-1">
             {authService.hasAccessToTab('overview') && (
               <TabsTrigger value="overview" className="text-white data-[state=active]:bg-teal-600/50 data-[state=active]:text-white flex items-center gap-1 sm:gap-2 text-xs sm:text-sm px-2 sm:px-3 py-2"><Eye className="w-3 h-3 sm:w-4 sm:h-4"/><span className="hidden sm:inline">Visão Geral</span><span className="sm:hidden">Geral</span></TabsTrigger>
@@ -511,33 +907,27 @@ const Dashboard = ({
           </TabsList>
 
           <div className="mt-4 sm:mt-6">
-            {console.log('🔍 Renderizando TabsContent - activeTab:', activeTab)}
             <TabsContent value="overview">
-              {console.log('🔍 Renderizando TabsContent overview')}
               <ProtectedRoute requiredLevel="overview" user={user} isAuthenticated={isAuthenticated}>
                 <OverviewView data={dashboardData} />
               </ProtectedRoute>
             </TabsContent>
             <TabsContent value="development">
-              {console.log('🔍 Renderizando TabsContent development')}
               <ProtectedRoute requiredLevel="development" user={user} isAuthenticated={isAuthenticated}>
                 <DevelopmentView data={dashboardData} />
               </ProtectedRoute>
             </TabsContent>
             <TabsContent value="sales">
-              {console.log('🔍 Renderizando TabsContent sales - activeTab:', activeTab)}
               <ProtectedRoute requiredLevel="sales" user={user} isAuthenticated={isAuthenticated}>
                 <SalesView data={dashboardData} dateFilter={filterActive ? { startDate: appliedStartDate, endDate: appliedEndDate } : null} />
               </ProtectedRoute>
             </TabsContent>
             <TabsContent value="production">
-              {console.log('🔍 Renderizando TabsContent production')}
               <ProtectedRoute requiredLevel="production" user={user} isAuthenticated={isAuthenticated}>
                 <ProductionView data={dashboardData} />
               </ProtectedRoute>
             </TabsContent>
             <TabsContent value="after-sales">
-              {console.log('🔍 Renderizando TabsContent after-sales')}
               <ProtectedRoute requiredLevel="after-sales" user={user} isAuthenticated={isAuthenticated}>
                 <AfterSalesView orders={dashboardData.orders} />
               </ProtectedRoute>

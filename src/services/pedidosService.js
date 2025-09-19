@@ -36,7 +36,7 @@ export async function insertOrder(order) {
 
     const orderData = {
       pedido_id: order.id?.toString(),
-      nome_cliente: order.cliente?.nome || order.nome || 'Cliente não informado',
+      nome_cliente: order.nome || order.cliente?.nome || 'Cliente não informado',
       data_prevista: dataPrevista,
       envio_15: false,
       envio_45: false,

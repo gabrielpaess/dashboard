@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import { Search, User, DollarSign, Package, TrendingUp, Filter, X } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { vendasPorVendedorService } from '@/services/vendasPorVendedorService';
+import { orderRepository } from '@/services';
 
 const VendasPorVendedor = ({ dateFilter, onDataChange }) => {
   const [vendedores, setVendedores] = useState([]);
@@ -33,8 +33,40 @@ const VendasPorVendedor = ({ dateFilter, onDataChange }) => {
         nomeVendedor: filtroVendedor.trim() || undefined
       };
 
-      const dados = await vendasPorVendedorService.getVendasPorVendedor(filters);
-      setVendedores(dados.vendedores);
+      const response = await orderRepository.getSupabaseOrders(filters);
+      
+      if (!response.success) {
+        throw new Error('Falha ao buscar dados do Supabase');
+      }
+      
+      const pedidos = response.data || [];
+      
+      // Processar dados para agrupar por vendedor
+      const vendedoresMap = {};
+      pedidos.forEach(pedido => {
+        const vendedor = pedido.nome_vendedor || 'Não informado';
+        if (!vendedoresMap[vendedor]) {
+          vendedoresMap[vendedor] = {
+            nome: vendedor,
+            totalVendas: 0,
+            totalPedidos: 0,
+            pedidos: [],
+            situacoes: {}
+          };
+        }
+        vendedoresMap[vendedor].totalVendas += pedido.valor_total || 0;
+        vendedoresMap[vendedor].totalPedidos++;
+        vendedoresMap[vendedor].pedidos.push(pedido);
+        
+        // Contar situações
+        const situacao = pedido.situacao || 'Não informado';
+        vendedoresMap[vendedor].situacoes[situacao] = (vendedoresMap[vendedor].situacoes[situacao] || 0) + 1;
+      });
+      
+      const vendedores = Object.values(vendedoresMap).sort((a, b) => b.totalVendas - a.totalVendas);
+      setVendedores(vendedores);
+      
+      const dados = { vendedores, totalPedidos: pedidos.length, totalVendas: pedidos.reduce((sum, p) => sum + (p.valor_total || 0), 0) };
       
       // Notificar componente pai sobre os dados
       if (onDataChange) {
@@ -215,7 +247,7 @@ const VendasPorVendedor = ({ dateFilter, onDataChange }) => {
             
             {/* Situações do vendedor */}
             <div className="mt-3 flex flex-wrap gap-1 sm:gap-2">
-              {Object.entries(vendedor.situacoes).map(([situacao, count]) => (
+              {Object.entries(vendedor.situacoes || {}).map(([situacao, count]) => (
                 <span
                   key={situacao}
                   className={`text-xs px-1 sm:px-2 py-1 rounded-full ${getSituacaoColor(situacao)} bg-white/10`}

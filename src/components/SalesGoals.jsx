@@ -68,17 +68,17 @@ const SalesGoals = ({ data }) => {
         <div className="flex space-x-2">
           {isEditing ? (
             <>
-              <Button variant="outline" size="sm" onClick={handleSaveGoals} className="text-green-400 border-green-400/50">
+              <Button variant="outline" size="sm" onClick={handleSaveGoals} className="text-green-400 border-green-400/50 hover:bg-green-400/10 hover:text-green-300 bg-transparent">
                 <Save className="w-4 h-4 mr-1" />
                 Salvar
               </Button>
-              <Button variant="outline" size="sm" onClick={handleCancelEdit} className="text-red-400 border-red-400/50">
+              <Button variant="outline" size="sm" onClick={handleCancelEdit} className="text-red-400 border-red-400/50 hover:bg-red-400/10 hover:text-red-300 bg-transparent">
                 <X className="w-4 h-4 mr-1" />
                 Cancelar
               </Button>
             </>
           ) : (
-            <Button variant="outline" size="sm" onClick={() => setIsEditing(true)} className="text-white border-white/20">
+            <Button variant="outline" size="sm" onClick={() => setIsEditing(true)} className="text-white border-white/20 hover:bg-white/10 hover:text-white bg-transparent">
               <Edit className="w-4 h-4 mr-1" />
               Editar Metas
             </Button>

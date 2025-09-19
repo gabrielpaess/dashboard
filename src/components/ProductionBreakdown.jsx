@@ -20,6 +20,7 @@ const ProductionBreakdown = ({ data, detailed = false }) => {
     preparandoEnvio = 0, 
     faturado = 0 
   } = data;
+
   
   const totalItems = Object.values(wipByStage).reduce((a, b) => a + (b || 0), 0);
 
@@ -63,7 +64,7 @@ const ProductionBreakdown = ({ data, detailed = false }) => {
         <motion.div variants={cardVariants} initial="hidden" animate="visible" custom={2} className="bg-gradient-to-br from-yellow-500/20 to-orange-500/20 rounded-lg p-4 border border-yellow-500/30">
           <h3 className="text-sm font-medium text-yellow-300 mb-2 flex items-center"><Package className="w-4 h-4 mr-2"/>Itens em Produção</h3>
           <p className="text-3xl font-bold text-white">{itemsInProduction}</p>
-          <p className="text-xs text-gray-400">Em aberto, Aprovado, Preparando envio e Faturado</p>
+          <p className="text-xs text-gray-400">Preparando envio e Faturado</p>
           {data.wipCalculationMethod && (
             <p className="text-xs text-yellow-200 mt-1">
               {data.wipCalculationMethod === 'warehouse' ? '🏪 Data Warehouse' : 

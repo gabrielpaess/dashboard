@@ -69,10 +69,10 @@ export const POPUP_STYLES = `
   background: transparent;
   border: 1px solid #3b3d4a;
   color: white;
+}
 
-  &:hover {
-    background:#474958;
-  }
+#inline-editor-popup .cancel-button:hover {
+  background: #474958;
 }
 `;
 

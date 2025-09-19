@@ -6,7 +6,9 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "build:production": "node scripts/build-production.js",
     "preview": "vite preview",
+    "start:auto": "node scripts/dashboard-with-sync.js",
     "start:full": "node scripts/start-dashboard-with-sync.js",
     "start:sync": "node scripts/start-sync-only.js",
     "cron:run": "node scripts/run-cron-job.js",

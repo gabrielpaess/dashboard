@@ -145,7 +145,7 @@ class OrderService {
       title: item.item?.descricao || 'Item sem descrição',
       stage: 'Em Produção',
       stage_eta_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 dias
-      quantidade: parseFloat(item.item?.quantidade || 0)
+      quantidade: parseFloat(item.quantidade || item.item?.quantidade || 0)
     }));
   }
 
@@ -169,7 +169,6 @@ class OrderService {
   // Processar dados usando tabela pedidos centralizada
   async processOrderDataCentralized(dateFilter = null) {
     try {
-      console.log('🔄 Processing order data using centralized pedidos table...');
       
       const filters = dateFilter ? {
         dataInicial: dateFilter.startDate,

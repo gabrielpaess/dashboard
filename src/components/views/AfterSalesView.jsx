@@ -215,8 +215,8 @@ const AfterSalesView = ({ orders = [] }) => {
                       rows={2}
                     />
                     <div className="flex justify-end space-x-2">
-                      <Button size="sm" variant="ghost" onClick={handleCancel}><X className="w-4 h-4 mr-1" /> Cancelar</Button>
-                      <Button size="sm" onClick={handleSave} className="bg-green-600 hover:bg-green-700"><Save className="w-4 h-4 mr-1" /> Salvar</Button>
+                      <Button size="sm" variant="ghost" onClick={handleCancel} className="text-red-400 hover:bg-red-400/10 hover:text-red-300"><X className="w-4 h-4 mr-1" /> Cancelar</Button>
+                      <Button size="sm" onClick={handleSave} className="bg-green-600 hover:bg-green-700 text-white"><Save className="w-4 h-4 mr-1" /> Salvar</Button>
                     </div>
                   </div>
                 ) : (
@@ -255,8 +255,8 @@ const AfterSalesView = ({ orders = [] }) => {
               onClick={() => loadContacts('all')}
               className={`text-xs transition-colors ${
                 activeFilter === 'all' 
-                  ? 'bg-black text-white border-black hover:bg-purple-500' 
-                  : 'bg-white text-black border-gray-300 hover:bg-gray-50'
+                  ? 'bg-cyan-600 text-white border-cyan-600 hover:bg-cyan-700' 
+                  : 'bg-transparent text-white border-white/20 hover:bg-white/10 hover:text-white'
               }`}
             >
               Todos ({contacts.length})
@@ -267,8 +267,8 @@ const AfterSalesView = ({ orders = [] }) => {
               onClick={() => loadContacts('15day')}
               className={`text-xs transition-colors ${
                 activeFilter === '15day' 
-                  ? 'bg-black text-white border-black hover:bg-purple-500' 
-                  : 'bg-white text-black border-gray-300 hover:bg-gray-50'
+                  ? 'bg-cyan-600 text-white border-cyan-600 hover:bg-cyan-700' 
+                  : 'bg-transparent text-white border-white/20 hover:bg-white/10 hover:text-white'
               }`}
             >
               15 dias
@@ -279,8 +279,8 @@ const AfterSalesView = ({ orders = [] }) => {
               onClick={() => loadContacts('45day')}
               className={`text-xs transition-colors ${
                 activeFilter === '45day' 
-                  ? 'bg-black text-white border-black hover:bg-purple-500' 
-                  : 'bg-white text-black border-gray-300 hover:bg-gray-50'
+                  ? 'bg-cyan-600 text-white border-cyan-600 hover:bg-cyan-700' 
+                  : 'bg-transparent text-white border-white/20 hover:bg-white/10 hover:text-white'
               }`}
             >
               45 dias
@@ -291,8 +291,8 @@ const AfterSalesView = ({ orders = [] }) => {
               onClick={() => loadContacts('completed')}
               className={`text-xs transition-colors ${
                 activeFilter === 'completed' 
-                  ? 'bg-black text-white border-black hover:bg-purple-500' 
-                  : 'bg-white text-black border-gray-300 hover:bg-gray-50'
+                  ? 'bg-cyan-600 text-white border-cyan-600 hover:bg-cyan-700' 
+                  : 'bg-transparent text-white border-white/20 hover:bg-white/10 hover:text-white'
               }`}
             >
               Contatados

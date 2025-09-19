@@ -116,7 +116,8 @@ class PedidosCentralizedService {
       pedidos.forEach(pedido => {
         if (pedido.itens_json && Array.isArray(pedido.itens_json)) {
           pedido.itens_json.forEach(item => {
-            const quantidade = parseFloat(item.item?.quantidade || 0);
+            // Tentar ambas as estruturas: item.quantidade (estrutura real) ou item.item.quantidade (estrutura antiga)
+            const quantidade = parseFloat(item.quantidade || item.item?.quantidade || 0);
             totalItens += quantidade;
             
             itensDetalhados.push({
@@ -351,22 +352,25 @@ class PedidosCentralizedService {
   }
 
   /**
-   * Obter início da semana (segunda-feira)
+   * Obter início da semana (domingo)
    */
   getInicioSemana(date) {
     const d = new Date(date);
     const day = d.getDay();
-    const diff = d.getDate() - day + (day === 0 ? -6 : 1); // Ajustar quando domingo
-    return new Date(d.setDate(diff));
+    const diff = d.getDate() - day; // Domingo = 0, então diff = 0
+    const inicio = new Date(d);
+    inicio.setDate(diff);
+    inicio.setHours(0, 0, 0, 0);
+    return inicio;
   }
 
   /**
-   * Obter fim da semana (domingo)
+   * Obter fim da semana (sábado)
    */
   getFimSemana(date) {
     const inicio = this.getInicioSemana(date);
     const fim = new Date(inicio);
-    fim.setDate(inicio.getDate() + 6);
+    fim.setDate(inicio.getDate() + 6); // Domingo + 6 = Sábado
     fim.setHours(23, 59, 59, 999);
     return fim;
   }
@@ -508,12 +512,39 @@ class PedidosCentralizedService {
         throw new Error('Número do pedido é obrigatório');
       }
 
+      // Verificar se o pedido já existe
+      const { data: existingPedido, error: fetchError } = await this.supabase
+        .from('pedidos')
+        .select('envio_15, envio_45')
+        .eq('id', pedidoData.id)
+        .single();
+
+      if (fetchError && fetchError.code !== 'PGRST116') {
+        console.error('❌ Erro ao verificar pedido existente:', fetchError);
+        throw new Error(`Erro ao verificar pedido existente: ${fetchError.message}`);
+      }
+
+      // Determinar valores para envio_15 e envio_45
+      let envio15, envio45;
+      
+      if (existingPedido) {
+        // Pedido existe: manter valores atuais (preservar alterações do usuário)
+        envio15 = existingPedido.envio_15;
+        envio45 = existingPedido.envio_45;
+        console.log(`🔄 Atualizando pedido existente ${pedidoData.numero} - mantendo envio_15: ${envio15}, envio_45: ${envio45}`);
+      } else {
+        // Pedido novo: usar false como padrão
+        envio15 = false;
+        envio45 = false;
+        console.log(`🆕 Novo pedido ${pedidoData.numero} - definindo envio_15: ${envio15}, envio_45: ${envio45}`);
+      }
+
       // Validar e formatar dados
       const pedido = {
         id: pedidoData.id,
         pedido_id: pedidoData.id, // Adicionar campo pedido_id obrigatório
         numero: pedidoData.numero,
-        nome_cliente: pedidoData.cliente?.nome || pedidoData.nome || 'Cliente não informado',
+        nome_cliente: pedidoData.nome || pedidoData.cliente?.nome || 'Cliente não informado',
         data_pedido: this.formatDateToISO(pedidoData.data_pedido),
         data_pedido_pt_br: this.formatDateToPTBR(pedidoData.data_pedido),
         data_prevista: pedidoData.data_prevista ? this.formatDateToISO(pedidoData.data_prevista) : null,
@@ -521,8 +552,8 @@ class PedidosCentralizedService {
         valor_total: this.extractValorTotal(pedidoData),
         nome_vendedor: pedidoData.nome_vendedor || 'Não informado',
         itens_json: Array.isArray(itensData) ? itensData : [],
-        envio_15: this.calculateEnvio15(pedidoData.data_pedido, pedidoData.data_prevista),
-        envio_45: this.calculateEnvio45(pedidoData.data_pedido, pedidoData.data_prevista),
+        envio_15: envio15,
+        envio_45: envio45,
         updated_at: new Date().toISOString()
       };
 

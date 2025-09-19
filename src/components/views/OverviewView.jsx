@@ -60,7 +60,7 @@ const OverviewView = ({
           <Package className="w-10 h-10 mx-auto mb-3 text-yellow-400" />
           <h3 className="text-lg font-semibold text-yellow-400 mb-2">Em Produção</h3>
           <p className="text-4xl font-bold text-white mb-1">{wip['Em Produção'] || 0}</p>
-          <p className="text-sm text-gray-400">Na linha de montagem</p>
+          <p className="text-sm text-gray-400">Itens em produção</p>
         </motion.div>
       </div>
       

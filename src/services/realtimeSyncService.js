@@ -164,85 +164,130 @@ class RealtimeSyncService {
     const existingOrderIds = await this.getExistingOrderIds();
     console.log(`📊 Found ${existingOrderIds.size} existing orders in Supabase`);
 
-    for (const order of orders) {
-      try {
-        results.processed++;
-        
-        // Extract order data from API response
-        const pedidoData = order.pedido || order;
-        const pedidoId = pedidoData.id?.toString();
-        
-        if (!pedidoId) {
-          console.warn('⚠️ Order without ID skipped:', order);
-          results.skipped++;
-          continue;
-        }
-
-        // Skip cancelled orders
-        if (pedidoData.situacao === 'Cancelado') {
-          console.log(`🚫 Order ${pedidoId} filtered out (situacao: Cancelado)`);
-          results.skipped++;
-          continue;
-        }
-
-        // Check if order already exists in Supabase
-        if (existingOrderIds.has(pedidoId)) {
-          console.log(`📋 Order ${pedidoId} already exists in Supabase, checking for updates...`);
+    // Process orders in batches with retry logic
+    const batchSize = 3;
+    const maxRetries = 3;
+    
+    for (let i = 0; i < orders.length; i += batchSize) {
+      const batch = orders.slice(i, i + batchSize);
+      let retryCount = 0;
+      let batchProcessed = false;
+      
+      while (!batchProcessed && retryCount <= maxRetries) {
+        try {
+          console.log(`📦 Processando lote ${Math.floor(i / batchSize) + 1}/${Math.ceil(orders.length / batchSize)} (pedidos ${i + 1}-${Math.min(i + batchSize, orders.length)})`);
           
-          // Fetch detailed information to compare with existing data
-          const orderDetails = await fetchOrderDetails(token, parseInt(pedidoId));
+          await Promise.all(batch.map(async (order) => {
+            try {
+              results.processed++;
+              
+              // Extract order data from API response
+              const pedidoData = order.pedido || order;
+              const pedidoId = pedidoData.id?.toString();
+              
+              if (!pedidoId) {
+                console.warn('⚠️ Order without ID skipped:', order);
+                results.skipped++;
+                return;
+              }
+
+              // Skip cancelled orders
+              if (pedidoData.situacao === 'Cancelado') {
+                console.log(`🚫 Order ${pedidoId} filtered out (situacao: Cancelado)`);
+                results.skipped++;
+                return;
+              }
+
+              // Check if order already exists in Supabase
+              if (existingOrderIds.has(pedidoId)) {
+                console.log(`📋 Order ${pedidoId} already exists in Supabase, checking for updates...`);
+                
+                // Fetch detailed information to compare with existing data
+                const orderDetails = await fetchOrderDetails(token, parseInt(pedidoId));
+                
+                if (!orderDetails || !orderDetails.retorno || !orderDetails.retorno.pedido) {
+                  console.warn(`⚠️ No detailed data found for existing order ${pedidoId}`);
+                  results.skipped++;
+                  return;
+                }
+
+                const detailedPedido = orderDetails.retorno.pedido;
+                const itensData = detailedPedido.itens || [];
+
+                // Check if order needs update by comparing with existing data
+                const needsUpdate = await this.checkOrderNeedsUpdate(pedidoId, detailedPedido);
+                
+                if (needsUpdate) {
+                  console.log(`🔄 Order ${pedidoId} needs update, updating...`);
+                  await this.updateOrderInSupabase(detailedPedido, itensData);
+                  results.updatedOrders++;
+                  console.log(`✅ Order ${pedidoId} updated successfully`);
+                } else {
+                  console.log(`✅ Order ${pedidoId} is up to date, skipping`);
+                  results.skipped++;
+                }
+                
+                return;
+              }
+
+              // This is a new order, fetch detailed information including items
+              console.log(`🆕 New order ${pedidoId} found, fetching details...`);
+              const orderDetails = await fetchOrderDetails(token, parseInt(pedidoId));
+              
+              if (!orderDetails || !orderDetails.retorno || !orderDetails.retorno.pedido) {
+                console.warn(`⚠️ No detailed data found for order ${pedidoId}`);
+                results.errors++;
+                return;
+              }
+
+              const detailedPedido = orderDetails.retorno.pedido;
+              const itensData = detailedPedido.itens || [];
+
+              // Create new order with correct field mapping
+              await this.createOrderInSupabase(detailedPedido, itensData);
+              results.newOrders++;
+              console.log(`✅ New order ${pedidoId} created with ${itensData.length} items`);
+
+            } catch (error) {
+              if (error.message.includes('API Bloqueada')) {
+                throw error; // Re-throw to trigger batch retry
+              }
+              console.error(`❌ Error processing order ${order.pedido?.id || order.id}:`, error.message);
+              results.errors++;
+            }
+          }));
           
-          if (!orderDetails || !orderDetails.retorno || !orderDetails.retorno.pedido) {
-            console.warn(`⚠️ No detailed data found for existing order ${pedidoId}`);
-            results.skipped++;
-            continue;
+          // Sucesso no lote
+          batchProcessed = true;
+          retryCount = 0;
+          
+          // Small delay between batches
+          if (i + batchSize < orders.length) {
+            await new Promise(resolve => setTimeout(resolve, 1000));
           }
-
-          const detailedPedido = orderDetails.retorno.pedido;
-          const itensData = detailedPedido.itens || [];
-
-          // Check if order needs update by comparing with existing data
-          const needsUpdate = await this.checkOrderNeedsUpdate(pedidoId, detailedPedido);
           
-          if (needsUpdate) {
-            console.log(`🔄 Order ${pedidoId} needs update, updating...`);
-            await this.updateOrderInSupabase(detailedPedido, itensData);
-            results.updatedOrders++;
-            console.log(`✅ Order ${pedidoId} updated successfully`);
+        } catch (error) {
+          if (error.message.includes('API Bloqueada')) {
+            retryCount++;
+            
+            if (retryCount <= maxRetries) {
+              const waitTime = Math.min(60000 * retryCount, 300000); // Max 5 minutos
+              console.log(`⚠️ API bloqueada no lote. Tentativa ${retryCount}/${maxRetries}. Aguardando ${waitTime / 1000} segundos...`);
+              await new Promise(resolve => setTimeout(resolve, waitTime));
+              
+              // Tentar novamente o mesmo lote
+              continue;
+            } else {
+              console.log(`❌ Máximo de tentativas atingido para o lote (${maxRetries}). Pulando lote...`);
+              batchProcessed = true;
+              results.errors += batch.length;
+            }
           } else {
-            console.log(`✅ Order ${pedidoId} is up to date, skipping`);
-            results.skipped++;
+            console.error('❌ Erro no lote:', error.message);
+            batchProcessed = true;
+            results.errors += batch.length;
           }
-          
-          // Small delay to avoid overwhelming the API
-          await new Promise(resolve => setTimeout(resolve, 200));
-          continue;
         }
-
-        // This is a new order, fetch detailed information including items
-        console.log(`🆕 New order ${pedidoId} found, fetching details...`);
-        const orderDetails = await fetchOrderDetails(token, parseInt(pedidoId));
-        
-        if (!orderDetails || !orderDetails.retorno || !orderDetails.retorno.pedido) {
-          console.warn(`⚠️ No detailed data found for order ${pedidoId}`);
-          results.errors++;
-          continue;
-        }
-
-        const detailedPedido = orderDetails.retorno.pedido;
-        const itensData = detailedPedido.itens || [];
-
-        // Create new order with correct field mapping
-        await this.createOrderInSupabase(detailedPedido, itensData);
-        results.newOrders++;
-        console.log(`✅ New order ${pedidoId} created with ${itensData.length} items`);
-
-        // Small delay to avoid overwhelming the API
-        await new Promise(resolve => setTimeout(resolve, 200));
-
-      } catch (error) {
-        console.error(`❌ Error processing order ${order.pedido?.id || order.id}:`, error.message);
-        results.errors++;
       }
     }
 
@@ -317,6 +362,14 @@ class RealtimeSyncService {
       const apiValorTotal = this.extractValorTotal(apiPedidoData);
       const apiDataPrevista = apiPedidoData.data_prevista ? this.formatDateToISO(apiPedidoData.data_prevista) : null;
       const apiNomeVendedor = apiPedidoData.nome_vendedor || 'Não informado';
+
+      // Debug: Mostrar comparação detalhada
+      console.log(`🔍 Comparando pedido ${pedidoId}:`, {
+        situacao: { supabase: existingOrder.situacao, api: apiSituacao },
+        valor_total: { supabase: existingOrder.valor_total, api: apiValorTotal },
+        data_prevista: { supabase: existingOrder.data_prevista, api: apiDataPrevista },
+        nome_vendedor: { supabase: existingOrder.nome_vendedor, api: apiNomeVendedor }
+      });
 
       // Check if any critical field has changed
       const situacaoChanged = existingOrder.situacao !== apiSituacao;
@@ -394,7 +447,7 @@ class RealtimeSyncService {
         id: pedidoData.id,
         pedido_id: pedidoData.id, // retorno.pedidos.pedido.id
         numero: pedidoData.numero, // retorno.pedidos.pedido.numero
-        nome_cliente: pedidoData.cliente?.nome || pedidoData.nome || 'Cliente não informado', // retorno.pedido.cliente.nome
+        nome_cliente: pedidoData.nome || pedidoData.cliente?.nome || 'Cliente não informado', // retorno.pedido.nome
         data_pedido: this.formatDateToISO(pedidoData.data_pedido), // retorno.pedidos.pedido.data_pedido
         data_pedido_pt_br: this.formatDateToPTBR(pedidoData.data_pedido), // retorno.pedidos.pedido.data_pedido
         data_prevista: pedidoData.data_prevista ? this.formatDateToISO(pedidoData.data_prevista) : null, // retorno.pedidos.pedido.data_prevista
@@ -411,6 +464,11 @@ class RealtimeSyncService {
       // Debug: Mostrar dados que serão inseridos
       console.log(`🔍 Criando pedido ${pedido.numero} (ID: ${pedido.id})`);
       console.log(`📊 Dados: situacao=${pedido.situacao}, valor=${pedido.valor_total}, vendedor=${pedido.nome_vendedor}`);
+      console.log(`🔍 Dados originais da API:`, {
+        situacao_original: pedidoData.situacao,
+        situacao_mapeada: pedido.situacao,
+        todos_campos: pedidoData
+      });
 
       const { error } = await this.supabase
         .from('pedidos')
@@ -446,7 +504,7 @@ class RealtimeSyncService {
       // Atualizar com mapeamento correto dos campos
       const updates = {
         numero: pedidoData.numero, // retorno.pedidos.pedido.numero
-        nome_cliente: pedidoData.cliente?.nome || pedidoData.nome || 'Cliente não informado', // retorno.pedido.cliente.nome
+        nome_cliente: pedidoData.nome || pedidoData.cliente?.nome || 'Cliente não informado', // retorno.pedido.nome
         data_pedido: this.formatDateToISO(pedidoData.data_pedido), // retorno.pedidos.pedido.data_pedido
         data_pedido_pt_br: this.formatDateToPTBR(pedidoData.data_pedido), // retorno.pedidos.pedido.data_pedido
         data_prevista: pedidoData.data_prevista ? this.formatDateToISO(pedidoData.data_prevista) : null, // retorno.pedidos.pedido.data_prevista
@@ -462,6 +520,11 @@ class RealtimeSyncService {
       // Debug: Mostrar dados que serão atualizados
       console.log(`🔍 Atualizando pedido ${updates.numero} (ID: ${pedidoData.id})`);
       console.log(`📊 Dados: situacao=${updates.situacao}, valor=${updates.valor_total}, vendedor=${updates.nome_vendedor}`);
+      console.log(`🔍 Dados originais da API:`, {
+        situacao_original: pedidoData.situacao,
+        situacao_mapeada: updates.situacao,
+        todos_campos: pedidoData
+      });
 
       const { error } = await this.supabase
         .from('pedidos')
