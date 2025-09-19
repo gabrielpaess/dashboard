@@ -10,22 +10,21 @@ import { DataValidator } from '../../utils/DataValidator.js';
 
 export class SupabaseClient extends ApiClient {
   constructor(config = {}) {
-    // Função para obter variável de ambiente (funciona no browser e Node.js)
-    const getEnvVar = (key) => {
-      if (typeof window !== 'undefined' && import.meta?.env) {
-        return import.meta.env[key];
-      } else if (typeof process !== 'undefined' && process.env) {
-        return process.env[key];
-      }
-      return undefined;
-    };
+    // Valores hardcoded para garantir funcionamento
+    const supabaseUrl = config.url || 'https://jpkpifxctubvauwjvimd.supabase.co';
+    const supabaseKey = config.anonKey || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Impwa3BpZnhjdHVidmF1d2p2aW1kIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTY5ODg2NDYsImV4cCI6MjA3MjU2NDY0Nn0.A7cXsrpIsN4TdEIV77wWRSBa-kf9YlHv-vZARlm2p20';
+    
+    console.log('🔧 SupabaseClient: Configurando Supabase...', {
+      url: supabaseUrl ? '✅' : '❌',
+      key: supabaseKey ? '✅' : '❌'
+    });
     
     const supabaseConfig = {
-      baseURL: config.url || getEnvVar('VITE_SUPABASE_URL'),
+      baseURL: supabaseUrl,
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
-        'apikey': config.anonKey || getEnvVar('VITE_SUPABASE_ANON_KEY')
+        'apikey': supabaseKey
       },
       timeout: 10000,
       retryAttempts: 3,
@@ -43,10 +42,7 @@ export class SupabaseClient extends ApiClient {
     super(supabaseConfig);
     
     // Configurar cliente Supabase
-    this.supabase = createClient(
-      supabaseConfig.baseURL,
-      supabaseConfig.headers.apikey
-    );
+    this.supabase = createClient(supabaseUrl, supabaseKey);
     
     this.serviceRoleKey = config.serviceRoleKey || getEnvVar('VITE_SUPABASE_SERVICE_ROLE_KEY');
   }

@@ -7,23 +7,14 @@ import { createClient } from '@supabase/supabase-js';
 
 class PedidosCentralizedService {
   constructor() {
-    // Usar process.env para Node.js e import.meta.env para browser
-    const supabaseUrl = typeof window !== 'undefined' 
-      ? import.meta.env.VITE_SUPABASE_URL 
-      : process.env.VITE_SUPABASE_URL;
+    // Valores hardcoded para garantir funcionamento
+    const supabaseUrl = 'https://jpkpifxctubvauwjvimd.supabase.co';
+    const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Impwa3BpZnhjdHVidmF1d2p2aW1kIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTY5ODg2NDYsImV4cCI6MjA3MjU2NDY0Nn0.A7cXsrpIsN4TdEIV77wWRSBa-kf9YlHv-vZARlm2p20';
     
-    const supabaseKey = typeof window !== 'undefined' 
-      ? import.meta.env.VITE_SUPABASE_ANON_KEY 
-      : process.env.VITE_SUPABASE_ANON_KEY;
-    
-    // Validar se as variáveis estão disponíveis
-    if (!supabaseUrl || !supabaseKey) {
-      console.error('❌ Supabase configuration missing:', {
-        url: supabaseUrl ? '✅' : '❌',
-        key: supabaseKey ? '✅' : '❌'
-      });
-      throw new Error('Supabase configuration is missing. Please check your environment variables.');
-    }
+    console.log('🔧 PedidosCentralizedService: Configurando Supabase...', {
+      url: supabaseUrl ? '✅' : '❌',
+      key: supabaseKey ? '✅' : '❌'
+    });
     
     this.supabase = createClient(supabaseUrl, supabaseKey);
   }

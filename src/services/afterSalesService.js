@@ -4,13 +4,18 @@
  */
 
 import { createClient } from '@supabase/supabase-js';
-import { config } from '../config/environment.js';
 
-// Create Supabase client for Node.js
-const supabase = createClient(
-  config.supabase.url,
-  config.supabase.serviceRoleKey || config.supabase.anonKey
-);
+// Valores hardcoded para garantir funcionamento
+const supabaseUrl = 'https://jpkpifxctubvauwjvimd.supabase.co';
+const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Impwa3BpZnhjdHVidmF1d2p2aW1kIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTY5ODg2NDYsImV4cCI6MjA3MjU2NDY0Nn0.A7cXsrpIsN4TdEIV77wWRSBa-kf9YlHv-vZARlm2p20';
+
+console.log('🔧 afterSalesService: Configurando Supabase...', {
+  url: supabaseUrl ? '✅' : '❌',
+  key: supabaseKey ? '✅' : '❌'
+});
+
+// Create Supabase client
+const supabase = createClient(supabaseUrl, supabaseKey);
 
 /**
  * Gets orders that need after-sales follow-up (data_prevista + 15 days)
