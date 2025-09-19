@@ -44,7 +44,7 @@ export class SupabaseClient extends ApiClient {
     // Configurar cliente Supabase
     this.supabase = createClient(supabaseUrl, supabaseKey);
     
-    this.serviceRoleKey = config.serviceRoleKey || getEnvVar('VITE_SUPABASE_SERVICE_ROLE_KEY');
+    this.serviceRoleKey = config.serviceRoleKey || supabaseKey; // Usar a mesma chave como fallback
   }
 
   /**
