@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 // import { Helmet } from 'react-helmet'; // Removido temporariamente
 import Dashboard from '@/components/Dashboard';
 import LoadingScreen from '@/components/LoadingScreen';
-import TestMinimal from '@/test-minimal';
 import { Toaster } from '@/components/ui/toaster';
 import { authService } from '@/services/authServiceSimple';
 
@@ -105,14 +104,13 @@ function App() {
         </div>
       ) : (
         <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-indigo-900 text-slate-50">
-          <TestMinimal />
-          {/* <Dashboard 
+          <Dashboard 
             isAuthenticated={isAuthenticated}
             user={user}
             onLoginSuccess={handleLoginSuccess}
             onLogout={handleLogout}
           />
-          <Toaster /> */}
+          <Toaster />
         </div>
       )}
     </>
