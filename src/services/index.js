@@ -25,6 +25,7 @@ export { InstagramConversationService } from './api/instagram/InstagramConversat
 // Repositórios
 export { OrderRepository } from './data/OrderRepository.js';
 export { FrontendOrderRepository } from './data/FrontendOrderRepository.js';
+export { SimpleOrderRepository } from './data/SimpleOrderRepository.js';
 
 // Serviços de sincronização
 export { SyncService } from './sync/SyncService.js';
@@ -45,14 +46,15 @@ import { SupabaseOrderService } from './api/supabase/SupabaseOrderService.js';
 import { InstagramConversationService } from './api/instagram/InstagramConversationService.js';
 import { OrderRepository } from './data/OrderRepository.js';
 import { FrontendOrderRepository } from './data/FrontendOrderRepository.js';
+import { SimpleOrderRepository } from './data/SimpleOrderRepository.js';
 import { SyncService } from './sync/SyncService.js';
 
 // Instâncias singleton para uso direto
 export const tinyOrderService = new TinyOrderService(apiConfig.getTinyConfig());
 export const supabaseOrderService = new SupabaseOrderService(apiConfig.getSupabaseConfig());
 export const instagramConversationService = new InstagramConversationService(apiConfig.getInstagramConfig());
-// Usar FrontendOrderRepository no frontend (não precisa do token da API Tiny)
-export const orderRepository = new FrontendOrderRepository({
+// Usar SimpleOrderRepository no frontend (versão mais simples e confiável)
+export const orderRepository = new SimpleOrderRepository({
   supabase: apiConfig.getSupabaseConfig()
 });
 export const syncService = new SyncService({
