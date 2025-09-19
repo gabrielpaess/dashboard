@@ -5,6 +5,9 @@
     },
     "api/sync.js": {
       "maxDuration": 300
+    },
+    "api/sync-manual.js": {
+      "maxDuration": 60
     }
   },
   "rewrites": [
@@ -16,7 +19,7 @@
   "crons": [
     {
       "path": "/api/sync",
-      "schedule": "*/15 * * * *"
+      "schedule": "0 6 * * *"
     }
   ]
 }

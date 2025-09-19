@@ -1,12 +1,12 @@
 /**
- * API Route para Sincronização Automática
+ * API Route para Sincronização Manual
  * 
- * Este endpoint pode ser chamado por cron jobs externos (como Vercel Cron)
- * ou por webhooks para manter a sincronização automática funcionando.
+ * Este endpoint pode ser chamado externamente para sincronização mais frequente
+ * quando necessário, sem depender do cron job diário.
  * 
  * Uso:
- * - GET /api/sync - Executa sincronização completa
- * - POST /api/sync - Executa sincronização com parâmetros
+ * - GET /api/sync-manual - Executa sincronização rápida (últimos pedidos)
+ * - POST /api/sync-manual - Executa sincronização com parâmetros
  */
 
 import { TinyApiClient } from '../src/services/api/tiny/TinyApiClient.js';
@@ -22,7 +22,6 @@ export default async function handler(req, res) {
     return res.status(200).end();
   }
 
-  // Verificar se é GET ou POST
   if (req.method !== 'GET' && req.method !== 'POST') {
     return res.status(405).json({ 
       success: false, 
@@ -31,40 +30,37 @@ export default async function handler(req, res) {
   }
 
   try {
-    console.log('🔄 Iniciando sincronização via API...');
+    console.log('🔄 Iniciando sincronização manual...');
     const startTime = Date.now();
     
     const tinyClient = new TinyApiClient();
     let totalProcessed = 0;
     let totalWithItems = 0;
     let totalWithoutItems = 0;
-    let currentPage = 1;
-    let hasMorePages = true;
-    let apiBlockedCount = 0;
-    const maxApiBlocks = 5; // Mais tentativas já que é execução diária
-    const maxPages = req.query.maxPages ? parseInt(req.query.maxPages) : 20; // Mais páginas para sincronização diária
-
-    while (hasMorePages && apiBlockedCount < maxApiBlocks && currentPage <= maxPages) {
+    
+    // Para sincronização manual, focar apenas nas últimas páginas
+    const maxPages = 3; // Apenas 3 páginas para execução rápida
+    const batchSize = 3; // Lotes pequenos para execução rápida
+    
+    for (let currentPage = 1; currentPage <= maxPages; currentPage++) {
       try {
         console.log(`📄 Sincronizando página ${currentPage}...`);
         
         const response = await tinyClient.fetchOrders({ 
           pagina: currentPage,
-          registrosPorPagina: 100, // Mais registros por página para sincronização diária
+          registrosPorPagina: 50, // Menos registros para execução rápida
           useCache: false
         });
         
         if (!response.success || !response.data || response.data.length === 0) {
           console.log(`⚠️ Nenhum pedido encontrado na página ${currentPage}`);
-          hasMorePages = false;
           break;
         }
         
         const pedidos = response.data;
         console.log(`📦 Processando ${pedidos.length} pedidos da página ${currentPage}`);
         
-        // Processar pedidos em lotes maiores para sincronização diária
-        const batchSize = 5;
+        // Processar pedidos em lotes pequenos
         for (let i = 0; i < pedidos.length; i += batchSize) {
           const batch = pedidos.slice(i, i + batchSize);
           
@@ -88,9 +84,6 @@ export default async function handler(req, res) {
                   totalWithoutItems++;
                 }
               } catch (detailsError) {
-                if (detailsError.message.includes('API Bloqueada')) {
-                  throw detailsError;
-                }
                 console.warn(`⚠️ Erro ao buscar detalhes do pedido ${pedido.numero}:`, detailsError.message);
                 totalWithoutItems++;
               }
@@ -100,72 +93,53 @@ export default async function handler(req, res) {
               totalProcessed++;
               
             } catch (pedidoError) {
-              if (pedidoError.message.includes('API Bloqueada')) {
-                throw pedidoError;
-              }
               console.error(`❌ Erro ao processar pedido ${pedido.numero}:`, pedidoError.message);
             }
           }));
           
-          // Delay menor entre lotes para sincronização diária
+          // Delay mínimo entre lotes
           if (i + batchSize < pedidos.length) {
-            await new Promise(resolve => setTimeout(resolve, 200));
+            await new Promise(resolve => setTimeout(resolve, 100));
           }
         }
         
-        // Verificar se há mais páginas
-        const totalPages = response.pagination?.totalPages || 1;
-        hasMorePages = currentPage < totalPages;
-        
-        if (hasMorePages) {
-          currentPage++;
-          // Delay menor entre páginas para sincronização diária
-          await new Promise(resolve => setTimeout(resolve, 500));
+        // Delay mínimo entre páginas
+        if (currentPage < maxPages) {
+          await new Promise(resolve => setTimeout(resolve, 200));
         }
         
       } catch (pageError) {
-        if (pageError.message.includes('API Bloqueada')) {
-          apiBlockedCount++;
-          console.log(`⚠️ API bloqueada (${apiBlockedCount}/${maxApiBlocks}). Aguardando 30 segundos...`);
-          
-          if (apiBlockedCount >= maxApiBlocks) {
-            console.log(`❌ Máximo de bloqueios da API atingido. Parando sincronização.`);
-            break;
-          }
-          
-          await new Promise(resolve => setTimeout(resolve, 30000));
-          apiBlockedCount = 0;
-        } else {
-          console.error(`❌ Erro ao processar página ${currentPage}:`, pageError.message);
-          hasMorePages = false;
-        }
+        console.error(`❌ Erro ao processar página ${currentPage}:`, pageError.message);
+        break;
       }
     }
     
     const duration = ((Date.now() - startTime) / 1000).toFixed(2);
-    console.log(`✅ Sincronização finalizada em ${duration}s`);
+    console.log(`✅ Sincronização manual finalizada em ${duration}s`);
     console.log(`📊 Resumo: ${totalProcessed} pedidos processados (${totalWithItems} com itens, ${totalWithoutItems} sem itens)`);
     
     return res.status(200).json({
       success: true,
-      message: 'Sincronização executada com sucesso',
+      message: 'Sincronização manual executada com sucesso',
       data: {
         totalProcessed,
         totalWithItems,
         totalWithoutItems,
-        pagesProcessed: currentPage - 1,
+        pagesProcessed: maxPages,
         duration: parseFloat(duration),
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        type: 'manual'
       }
     });
     
   } catch (error) {
-    console.error('❌ Erro na sincronização:', error);
+    console.error('❌ Erro na sincronização manual:', error);
     
     return res.status(500).json({
       success: false,
       error: error.message,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
+      type: 'manual'
     });
   }
 }

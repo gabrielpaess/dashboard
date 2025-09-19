@@ -106,7 +106,7 @@ A sincronização é executada automaticamente via cron job da Vercel:
 ## Monitoramento
 
 Para verificar o status da sincronização:
-- Acesse: https://seu-dominio.vercel.app/api/sync
+- Acesse: https://dashboard-zeta-three-34.vercel.app//api/sync
 - Retorna JSON com status da última sincronização
 
 ## Variáveis de Ambiente Necessárias
