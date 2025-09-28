@@ -1,0 +1,71 @@
+services:
+  # Banco de dados PostgreSQL
+  postgres:
+    image: postgres:15-alpine
+    container_name: dashboard_postgres_prod
+    environment:
+      POSTGRES_DB: dashboard
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres123
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data_prod:/var/lib/postgresql/data
+    networks:
+      - dashboard_network
+
+  # API NestJS Backend
+  api:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: dashboard_api_prod
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: dashboard
+      DB_USER: postgres
+      DB_PASSWORD: postgres123
+      TINY_API_TOKEN: a8dfc864f05313e7f9285f6bae3c000120a56c4ad596c62ec9b7ce62a7e9272b
+      JWT_SECRET: trend_quadros_jwt_secret_2024_super_secure_key
+      JWT_EXPIRES_IN: 24h
+      CORS_ORIGIN: http://localhost:5173
+      PORT: 3001
+      NODE_ENV: production
+      AUTO_START_SYNC: "true"
+      SYNC_INTERVAL_MINUTES: "15"
+      NODE_OPTIONS: "--openssl-legacy-provider"
+    ports:
+      - "3001:3001"
+    depends_on:
+      - postgres
+    networks:
+      - dashboard_network
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+
+  # Frontend React
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+    container_name: dashboard_frontend_prod
+    ports:
+      - "5173:5173"
+    depends_on:
+      - api
+    networks:
+      - dashboard_network
+    volumes:
+      - .:/app
+      - /app/node_modules
+    environment:
+      - VITE_API_URL=http://localhost:3001
+
+volumes:
+  postgres_data_prod:
+
+networks:
+  dashboard_network:
+    driver: bridge

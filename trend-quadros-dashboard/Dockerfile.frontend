@@ -1,0 +1,19 @@
+# Frontend Dockerfile
+FROM node:18-alpine
+
+WORKDIR /app
+
+# Copiar package.json e package-lock.json
+COPY package*.json ./
+
+# Instalar dependências
+RUN npm ci
+
+# Copiar código fonte
+COPY . .
+
+# Expor porta
+EXPOSE 5173
+
+# Comando para iniciar o frontend
+CMD ["npm", "run", "dev", "--", "--config", "vite.config.minimal.js", "--host", "0.0.0.0"]

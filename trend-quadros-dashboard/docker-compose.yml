@@ -1,0 +1,18 @@
+services:
+  # Frontend React
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+    container_name: trend_quadros_frontend
+    ports:
+      - "5173:5173"
+    environment:
+      - VITE_API_URL=http://localhost:3001
+    networks:
+      - trend_quadros_network
+
+networks:
+  trend_quadros_network:
+    external: true
+

@@ -1,0 +1,74 @@
+version: '3.8'
+
+services:
+  # Banco de dados PostgreSQL
+  postgres:
+    image: postgres:15-alpine
+    container_name: trend_quadros_postgres
+    environment:
+      POSTGRES_DB: dashboard
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres123
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - trend_quadros_network
+
+  # API NestJS Backend
+  api:
+    build:
+      context: ./trend-quadros-api
+      dockerfile: Dockerfile
+    container_name: trend_quadros_api
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: dashboard
+      DB_USER: postgres
+      DB_PASSWORD: postgres123
+      TINY_API_TOKEN: a8dfc864f05313e7f9285f6bae3c000120a56c4ad596c62ec9b7ce62a7e9272b
+      JWT_SECRET: trend_quadros_jwt_secret_2024_super_secure_key
+      JWT_EXPIRES_IN: 24h
+      CORS_ORIGIN: http://localhost:5173
+      PORT: 3001
+      NODE_ENV: development
+      AUTO_START_SYNC: "true"
+      SYNC_INTERVAL_MINUTES: "15"
+      NODE_OPTIONS: "--openssl-legacy-provider"
+    ports:
+      - "3001:3001"
+    depends_on:
+      - postgres
+    networks:
+      - trend_quadros_network
+    volumes:
+      - ./trend-quadros-api:/app
+      - /app/node_modules
+
+  # Frontend React
+  frontend:
+    build:
+      context: ./trend-quadros-dashboard
+      dockerfile: Dockerfile.frontend
+    container_name: trend_quadros_frontend
+    ports:
+      - "5173:5173"
+    depends_on:
+      - api
+    networks:
+      - trend_quadros_network
+    volumes:
+      - ./trend-quadros-dashboard:/app
+      - /app/node_modules
+    environment:
+      - VITE_API_URL=http://localhost:3001
+
+volumes:
+  postgres_data:
+
+networks:
+  trend_quadros_network:
+    driver: bridge
+
