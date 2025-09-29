@@ -33,6 +33,7 @@
     "setup:db": "node scripts/setup-database.js",
     "test:db": "node scripts/test-db-connection.js",
     "test:connectivity": "node scripts/test-api-connectivity.js",
+    "fix:users": "node scripts/fix-users-vps.js",
     "docker:up": "docker-compose -f docker-compose.simple.yml up -d",
     "docker:down": "docker-compose -f docker-compose.simple.yml down",
     "docker:logs": "docker-compose -f docker-compose.simple.yml logs -f",
