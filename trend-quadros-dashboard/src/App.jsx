@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import Dashboard from './components/Dashboard';
 import LoadingScreen from './components/LoadingScreen';
 import NestjsDashboardTest from './components/NestjsDashboardTest';
+import ApiConnectivityTest from './components/ApiConnectivityTest';
 import { Toaster } from './components/ui/toaster';
 import { authService } from './services/authServiceSimple';
 
@@ -106,6 +107,11 @@ function App() {
       ) : window.location.search.includes('test') ? (
         <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-indigo-900 text-slate-50">
           <NestjsDashboardTest />
+          <Toaster />
+        </div>
+      ) : window.location.search.includes('connectivity') ? (
+        <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-indigo-900 text-slate-50 p-8">
+          <ApiConnectivityTest />
           <Toaster />
         </div>
       ) : (

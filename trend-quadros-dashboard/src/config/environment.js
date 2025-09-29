@@ -30,7 +30,7 @@ function getEnvVar(key, fallback = '') {
   return fallback;
 }
 
-// Default values for development
+// Default values for production API
 const DEFAULT_VALUES = {
   VITE_API_URL: 'http://168.231.90.41:3001',
   VITE_API_BASE_URL: 'http://168.231.90.41:3001/api',

@@ -5,13 +5,14 @@
 
 export class NestjsApiClient {
   constructor(config = {}) {
-    // Usar variável de ambiente ou fallback para localhost
+    // Usar configuração fornecida, variável de ambiente ou API de produção
     this.baseURL = config.baseURL || 
       (typeof import.meta !== 'undefined' && import.meta.env?.VITE_API_URL) || 
-      'http://localhost:3001';
+      'http://168.231.90.41:3001'; // API de produção como padrão
     this.timeout = config.timeout || 10000;
     
     console.log(`🔗 NestjsApiClient configurado para: ${this.baseURL}`);
+    console.log(`🌐 Ambiente: ${this.baseURL.includes('localhost') ? 'DESENVOLVIMENTO' : 'PRODUÇÃO'}`);
   }
 
   /**
@@ -26,19 +27,28 @@ export class NestjsApiClient {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
+        'Accept': 'application/json',
         ...options.headers
       },
       ...options
     };
 
+    console.log(`🌐 Fazendo requisição para: ${url}`);
+
     try {
       const response = await fetch(url, config);
       
+      console.log(`📡 Resposta recebida: ${response.status} ${response.statusText}`);
+      
       if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        const errorText = await response.text();
+        console.error(`❌ Erro HTTP ${response.status}:`, errorText);
+        throw new Error(`HTTP ${response.status}: ${response.statusText} - ${errorText}`);
       }
 
       const data = await response.json();
+      console.log(`✅ Dados recebidos:`, data);
+      
       return {
         success: true,
         data: data.data || data,
@@ -49,10 +59,22 @@ export class NestjsApiClient {
       };
     } catch (error) {
       console.error(`❌ Erro na requisição para ${endpoint}:`, error);
+      
+      // Verificar se é erro de conectividade
+      if (error.name === 'TypeError' && error.message.includes('Failed to fetch')) {
+        return {
+          success: false,
+          error: 'Erro de conectividade: Não foi possível conectar à API',
+          data: null,
+          isConnectivityError: true
+        };
+      }
+      
       return {
         success: false,
         error: error.message,
-        data: null
+        data: null,
+        isConnectivityError: false
       };
     }
   }

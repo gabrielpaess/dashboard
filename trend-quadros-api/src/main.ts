@@ -17,9 +17,32 @@ async function bootstrap() {
   app.setGlobalPrefix('api');
 
   // CORS configuration
+  const allowedOrigins = process.env.CORS_ORIGIN 
+    ? process.env.CORS_ORIGIN.split(',').map(origin => origin.trim())
+    : [
+        'http://localhost:5173',
+        'http://localhost:3000',
+        'http://168.231.90.41:5173',
+        'http://168.231.90.41:3000',
+        'https://trend-quadros-dashboard.vercel.app',
+        'https://www.pontodeshboard.com'
+      ];
+
   app.enableCors({
-    origin: process.env.CORS_ORIGIN || 'http://localhost:5173',
+    origin: (origin, callback) => {
+      // Permitir requisições sem origin (ex: mobile apps, Postman)
+      if (!origin) return callback(null, true);
+      
+      if (allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        console.log(`❌ CORS bloqueado para origem: ${origin}`);
+        callback(new Error('Não permitido pelo CORS'));
+      }
+    },
     credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
   });
 
   // Swagger documentation

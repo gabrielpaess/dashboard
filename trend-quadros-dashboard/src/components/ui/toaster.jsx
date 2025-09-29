@@ -23,7 +23,7 @@ export function Toaster() {
 								<ToastDescription>{description}</ToastDescription>
 							)}
 						</div>
-						{action}
+						{action && <div>{action}</div>}
 						<ToastClose />
 					</Toast>
 				);

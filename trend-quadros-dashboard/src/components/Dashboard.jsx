@@ -327,7 +327,10 @@ const Dashboard = ({
       console.log('🔍 Dashboard - Resposta da API NestJS:', response);
       
       if (!response.success) {
-        throw new Error('Falha ao buscar dados da API');
+        if (response.isConnectivityError) {
+          throw new Error('Erro de conectividade: Verifique se a API está rodando e acessível');
+        }
+        throw new Error(`Falha ao buscar dados da API: ${response.error}`);
       }
       
       // Processar dados para o formato esperado pelo dashboard
