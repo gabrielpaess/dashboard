@@ -32,34 +32,18 @@ function getEnvVar(key, fallback = '') {
 
 // Default values for development
 const DEFAULT_VALUES = {
-  VITE_SUPABASE_URL: 'https://jpkpifxctubvauwjvimd.supabase.co',
-  VITE_SUPABASE_ANON_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Impwa3BpZnhjdHVidmF1d2p2aW1kIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTY5ODg2NDYsImV4cCI6MjA3MjU2NDY0Nn0.A7cXsrpIsN4TdEIV77wWRSBa-kf9YlHv-vZARlm2p20',
-  SUPABASE_URL: 'https://jpkpifxctubvauwjvimd.supabase.co',
-  VITE_TINY_API_URL: 'https://api.tiny.com.br/api2',
-  TINY_API_URL: 'https://api.tiny.com.br/api2',
-  CRON_SCHEDULE: '0 * * * *',
+  VITE_API_URL: 'http://168.231.90.41:3001',
+  VITE_API_BASE_URL: 'http://168.231.90.41:3001/api',
 };
 
 /**
  * Environment configuration object
  */
 export const config = {
-  // Supabase Configuration
-  supabase: {
-    url: getEnvVar('SUPABASE_URL') || getEnvVar('VITE_SUPABASE_URL') || DEFAULT_VALUES.SUPABASE_URL,
-    anonKey: getEnvVar('VITE_SUPABASE_ANON_KEY') || DEFAULT_VALUES.VITE_SUPABASE_ANON_KEY,
-    serviceRoleKey: getEnvVar('SUPABASE_SERVICE_ROLE_KEY'),
-  },
-  
-  // Tiny API Configuration
-  tiny: {
-    token: getEnvVar('TINY_API_TOKEN') || getEnvVar('VITE_TINY_API_TOKEN'),
-    url: getEnvVar('TINY_API_URL') || getEnvVar('VITE_TINY_API_URL') || DEFAULT_VALUES.TINY_API_URL,
-  },
-  
-  // Cron Job Configuration
-  cron: {
-    schedule: getEnvVar('CRON_SCHEDULE') || DEFAULT_VALUES.CRON_SCHEDULE,
+  // API Configuration
+  api: {
+    url: getEnvVar('VITE_API_URL') || DEFAULT_VALUES.VITE_API_URL,
+    baseUrl: getEnvVar('VITE_API_BASE_URL') || DEFAULT_VALUES.VITE_API_BASE_URL,
   },
   
   // Environment
@@ -83,21 +67,13 @@ export function validateEnvironment(requiredVars = []) {
     }
   }
   
-  // Check for common configuration issues
-  if (!config.supabase.url) {
-    missing.push('SUPABASE_URL or VITE_SUPABASE_URL');
+  // Check for API configuration
+  if (!config.api.url) {
+    missing.push('VITE_API_URL');
   }
   
-  if (!config.supabase.anonKey) {
-    missing.push('VITE_SUPABASE_ANON_KEY');
-  }
-  
-  if (!config.tiny.token) {
-    missing.push('TINY_API_TOKEN or VITE_TINY_API_TOKEN');
-  }
-  
-  if (!config.supabase.serviceRoleKey) {
-    warnings.push('SUPABASE_SERVICE_ROLE_KEY not found - using anon key (less secure)');
+  if (!config.api.baseUrl) {
+    missing.push('VITE_API_BASE_URL');
   }
   
   return {

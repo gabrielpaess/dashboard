@@ -13,7 +13,7 @@ import UserHeader from './UserHeader';
 import ProtectedRoute from './ProtectedRoute';
 import { Eye, Wrench, DollarSign, Package, Bell } from 'lucide-react';
 import DateFilter from './DateFilter';
-import { orderRepository, validateAllConnections } from '../services';
+import { nestjsApiClient, nestjsDashboardService, validateApiConnection } from '../services';
 import { authService } from '../services/authServiceSimple';
 
 const Dashboard = ({ 
@@ -314,28 +314,34 @@ const Dashboard = ({
     }
     
     try {
-      console.log('🔍 Dashboard - Verificando orderRepository...', { orderRepository });
+      console.log('🔍 Dashboard - Buscando dados da API NestJS...');
 
-      // Usar nova arquitetura com repositório
-      const filters = useFilter && appliedStartDate && appliedEndDate ? {
-        dataInicial: appliedStartDate,
-        dataFinal: appliedEndDate
-      } : {};
+      // Buscar dados da API NestJS
+      const response = await nestjsApiClient.request('/orders', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
       
-      console.log('🔍 Dashboard - Filtros aplicados:', filters);
-      
-      // Buscar dados do Supabase usando nova arquitetura
-      console.log('🔍 Dashboard - Chamando orderRepository.getSupabaseOrders...');
-      const response = await orderRepository.getSupabaseOrders(filters);
-      
-      console.log('🔍 Dashboard - Resposta do orderRepository:', response);
+      console.log('🔍 Dashboard - Resposta da API NestJS:', response);
       
       if (!response.success) {
-        throw new Error('Falha ao buscar dados do Supabase');
+        throw new Error('Falha ao buscar dados da API');
       }
       
       // Processar dados para o formato esperado pelo dashboard
-      const pedidos = response.data || [];
+      let pedidos = response.data || [];
+      
+      // Aplicar filtros de data se necessário
+      if (useFilter && appliedStartDate && appliedEndDate) {
+        pedidos = pedidos.filter(pedido => {
+          const dataPedido = new Date(pedido.data_pedido || pedido.created_at);
+          const startDate = new Date(appliedStartDate);
+          const endDate = new Date(appliedEndDate);
+          return dataPedido >= startDate && dataPedido <= endDate;
+        });
+      }
       
       // Calcular total de pedidos excluindo os cancelados e não entregues
       const totalPedidos = pedidos.filter(p => p.situacao !== 'Cancelado' && p.situacao !== 'Não Entregue').length;
@@ -345,15 +351,8 @@ const Dashboard = ({
       // Calcular métricas por período (sempre baseado na data atual, não nos filtros)
       const today = new Date();
       
-      // Para as metas, sempre buscar dados sem filtros de data para calcular corretamente
-      let allPedidos = pedidos;
-      if (useFilter && appliedStartDate && appliedEndDate) {
-        // Se há filtros aplicados, buscar todos os pedidos para calcular as metas corretamente
-        const allResponse = await orderRepository.getSupabaseOrders({});
-        if (allResponse.success) {
-          allPedidos = allResponse.data || [];
-        }
-      }
+      // Para as metas, usar todos os pedidos (sem filtros de data)
+      const allPedidos = response.data || [];
 
       const formatDate = (date) => date.toISOString().split('T')[0];
 

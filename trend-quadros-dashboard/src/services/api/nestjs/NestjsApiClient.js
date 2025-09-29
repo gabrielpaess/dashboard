@@ -5,8 +5,13 @@
 
 export class NestjsApiClient {
   constructor(config = {}) {
-    this.baseURL = config.baseURL || 'http://localhost:3001';
+    // Usar variável de ambiente ou fallback para localhost
+    this.baseURL = config.baseURL || 
+      (typeof import.meta !== 'undefined' && import.meta.env?.VITE_API_URL) || 
+      'http://localhost:3001';
     this.timeout = config.timeout || 10000;
+    
+    console.log(`🔗 NestjsApiClient configurado para: ${this.baseURL}`);
   }
 
   /**
@@ -325,8 +330,5 @@ export class NestjsApiClient {
     };
   }
 }
-
-// Instância padrão
-export const nestjsApiClient = new NestjsApiClient();
 
 export default NestjsApiClient;

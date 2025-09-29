@@ -32,6 +32,7 @@
     "debug:env": "node scripts/debug-env.js",
     "setup:db": "node scripts/setup-database.js",
     "test:db": "node scripts/test-db-connection.js",
+    "test:connectivity": "node scripts/test-api-connectivity.js",
     "docker:up": "docker-compose -f docker-compose.simple.yml up -d",
     "docker:down": "docker-compose -f docker-compose.simple.yml down",
     "docker:logs": "docker-compose -f docker-compose.simple.yml logs -f",

@@ -13,6 +13,9 @@ async function bootstrap() {
     transform: true,
   }));
 
+  // Global prefix for all routes
+  app.setGlobalPrefix('api');
+
   // CORS configuration
   app.enableCors({
     origin: process.env.CORS_ORIGIN || 'http://localhost:5173',
@@ -30,7 +33,7 @@ async function bootstrap() {
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api/docs', app, document);
 
-  // Health check endpoint
+  // Health check endpoint (without /api prefix)
   app.getHttpAdapter().get('/health', (req, res) => {
     res.json({
       status: 'healthy',

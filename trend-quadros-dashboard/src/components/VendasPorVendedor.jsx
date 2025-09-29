@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import { Search, User, DollarSign, Package, TrendingUp, Filter, X } from 'lucide-react';
 import { Input } from './ui/input';
 import { Button } from './ui/button';
-import { orderRepository } from '../services';
+import { nestjsApiClient } from '../services';
 
 const VendasPorVendedor = ({ dateFilter, onDataChange }) => {
   const [vendedores, setVendedores] = useState([]);
@@ -27,23 +27,41 @@ const VendasPorVendedor = ({ dateFilter, onDataChange }) => {
     setError(null);
 
     try {
-      const filters = {
-        dataInicial: dateFilter.startDate,
-        dataFinal: dateFilter.endDate,
-        nomeVendedor: filtroVendedor.trim() || undefined
-      };
-
-      const response = await orderRepository.getSupabaseOrders(filters);
+      // Buscar pedidos da API NestJS
+      const response = await nestjsApiClient.request('/orders', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
       
       if (!response.success) {
-        throw new Error('Falha ao buscar dados do Supabase');
+        throw new Error('Falha ao buscar dados da API');
       }
       
       const pedidos = response.data || [];
       
+      // Filtrar por data se necessário
+      const pedidosFiltrados = pedidos.filter(pedido => {
+        if (!dateFilter?.startDate || !dateFilter?.endDate) return true;
+        
+        const dataPedido = new Date(pedido.data_pedido || pedido.created_at);
+        const startDate = new Date(dateFilter.startDate);
+        const endDate = new Date(dateFilter.endDate);
+        
+        return dataPedido >= startDate && dataPedido <= endDate;
+      });
+      
+      // Filtrar por vendedor se especificado
+      const pedidosFinais = filtroVendedor.trim() 
+        ? pedidosFiltrados.filter(pedido => 
+            pedido.nome_vendedor?.toLowerCase().includes(filtroVendedor.toLowerCase())
+          )
+        : pedidosFiltrados;
+      
       // Processar dados para agrupar por vendedor
       const vendedoresMap = {};
-      pedidos.forEach(pedido => {
+      pedidosFinais.forEach(pedido => {
         const vendedor = pedido.nome_vendedor || 'Não informado';
         if (!vendedoresMap[vendedor]) {
           vendedoresMap[vendedor] = {

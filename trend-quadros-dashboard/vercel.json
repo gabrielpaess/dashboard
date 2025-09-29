@@ -1,28 +1,30 @@
 {
-  "functions": {
-    "api/proxy-tiny.js": {
-      "maxDuration": 30
-    },
-    "api/sync.js": {
-      "maxDuration": 300
-    },
-    "api/sync-manual.js": {
-      "maxDuration": 300
-    },
-    "api/sync-test.js": {
-      "maxDuration": 60
-    }
-  },
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist",
+  "framework": "vite",
   "rewrites": [
     {
-      "source": "/api/tiny/(.*)",
-      "destination": "/api/proxy-tiny.js"
+      "source": "/(.*)",
+      "destination": "/index.html"
     }
   ],
-  "crons": [
+  "headers": [
     {
-      "path": "/api/sync",
-      "schedule": "0 6 * * *"
+      "source": "/api/(.*)",
+      "headers": [
+        {
+          "key": "Access-Control-Allow-Origin",
+          "value": "*"
+        },
+        {
+          "key": "Access-Control-Allow-Methods",
+          "value": "GET, POST, PUT, DELETE, OPTIONS"
+        },
+        {
+          "key": "Access-Control-Allow-Headers",
+          "value": "Content-Type, Authorization"
+        }
+      ]
     }
   ]
 }
