@@ -6,11 +6,21 @@
  */
 
 const dotenv = require('dotenv');
+const path = require('path');
 const { Pool } = require('pg');
 const axios = require('axios');
 
-// Load environment variables
-dotenv.config();
+// Load environment variables - garantir que encontre o arquivo .env
+const envPath = path.join(process.cwd(), '.env');
+console.log(`🔍 Carregando variáveis de ambiente de: ${envPath}`);
+
+const result = dotenv.config({ path: envPath });
+if (result.error) {
+  console.error('❌ Erro ao carregar .env:', result.error);
+  process.exit(1);
+} else {
+  console.log('✅ Variáveis de ambiente carregadas com sucesso');
+}
 
 const pool = new Pool({
   host: process.env.DB_HOST || 'localhost',
