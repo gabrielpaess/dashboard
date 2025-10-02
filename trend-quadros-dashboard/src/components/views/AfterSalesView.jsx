@@ -333,9 +333,9 @@ const AfterSalesView = ({ orders = [] }) => {
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex-1">
-                      <p className="font-medium text-white">{contact.customer}</p>
-                      <p className="text-xs text-gray-300">Pedido: {contact.pedido_id}</p>
-                      <p className="text-xs text-gray-400">Data prevista: {formatDateToBR(contact.promisedDate)}</p>
+                      <p className="font-medium text-white">{contact.nome_cliente}</p>
+                      <p className="text-xs text-gray-300">Pedido: {contact.numero}</p>
+                      <p className="text-xs text-gray-400">Data prevista: {formatDateToBR(contact.data_prevista)}</p>
                       <div className="flex gap-4 mt-1">
                         <span className={`text-xs ${contact.envio_15 ? 'text-green-400' : 'text-yellow-400'}`}>
                           {contact.envio_15 ? '✓ 15 dias' : '⏳ 15 dias'}
@@ -347,7 +347,7 @@ const AfterSalesView = ({ orders = [] }) => {
                     </div>
                     <div className="text-center mr-4">
                       <p className="text-sm font-semibold text-cyan-300">
-                        {contact.daysSinceAfterSales} dias
+                        {contact.daysSinceExpected} dias
                       </p>
                       <p className="text-xs text-gray-400">pós-venda</p>
                     </div>

@@ -466,7 +466,7 @@ class OrderService {
     }
   }
 
-  // Processar dados dos pedidos para o dashboard (prioriza Supabase)
+  // Processar dados dos pedidos para o dashboard (prioriza API centralizada)
   async processOrderData(apiOrders = null, token = null, dateFilter = null) {
     try {
       console.log('🔄 Processing order data for dashboard...');

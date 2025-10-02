@@ -4,6 +4,7 @@ import { Search, User, DollarSign, Package, TrendingUp, Filter, X } from 'lucide
 import { Input } from './ui/input';
 import { Button } from './ui/button';
 import { nestjsApiClient } from '../services';
+import { DateFormatter } from '../services/utils/DateFormatter.js';
 
 const VendasPorVendedor = ({ dateFilter, onDataChange }) => {
   const [vendedores, setVendedores] = useState([]);
@@ -28,7 +29,7 @@ const VendasPorVendedor = ({ dateFilter, onDataChange }) => {
 
     try {
       // Buscar pedidos da API NestJS
-      const response = await nestjsApiClient.request('/orders', {
+      const response = await nestjsApiClient.request('/api/orders', {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -40,6 +41,18 @@ const VendasPorVendedor = ({ dateFilter, onDataChange }) => {
       }
       
       const pedidos = response.data || [];
+      
+      // Debug: verificar dados dos pedidos
+      console.log('📊 VendasPorVendedor - Dados recebidos:', {
+        totalPedidos: pedidos.length,
+        samplePedidos: pedidos.slice(0, 3).map(p => ({
+          numero: p.numero,
+          nome_vendedor: p.nome_vendedor,
+          valor_total: p.valor_total,
+          data_pedido: p.data_pedido,
+          situacao: p.situacao
+        }))
+      });
       
       // Filtrar por data se necessário
       const pedidosFiltrados = pedidos.filter(pedido => {
@@ -72,7 +85,11 @@ const VendasPorVendedor = ({ dateFilter, onDataChange }) => {
             situacoes: {}
           };
         }
-        vendedoresMap[vendedor].totalVendas += pedido.valor_total || 0;
+        const valorTotal = parseFloat(pedido.valor_total) || 0;
+        if (isNaN(valorTotal)) {
+          console.warn('⚠️ Valor inválido no pedido:', pedido.numero, 'valor_total:', pedido.valor_total);
+        }
+        vendedoresMap[vendedor].totalVendas += valorTotal;
         vendedoresMap[vendedor].totalPedidos++;
         vendedoresMap[vendedor].pedidos.push(pedido);
         
@@ -82,9 +99,26 @@ const VendasPorVendedor = ({ dateFilter, onDataChange }) => {
       });
       
       const vendedores = Object.values(vendedoresMap).sort((a, b) => b.totalVendas - a.totalVendas);
+      
+      // Debug: verificar dados processados dos vendedores
+      console.log('📊 VendasPorVendedor - Vendedores processados:', vendedores.map(v => ({
+        nome: v.nome,
+        totalVendas: v.totalVendas,
+        totalPedidos: v.totalPedidos,
+        isNaN: isNaN(v.totalVendas)
+      })));
+      
       setVendedores(vendedores);
       
-      const dados = { vendedores, totalPedidos: pedidos.length, totalVendas: pedidos.reduce((sum, p) => sum + (p.valor_total || 0), 0) };
+      const totalVendas = pedidos.reduce((sum, p) => {
+        const valor = parseFloat(p.valor_total) || 0;
+        if (isNaN(valor)) {
+          console.warn('⚠️ Valor inválido no total geral:', p.numero, 'valor_total:', p.valor_total);
+        }
+        return sum + valor;
+      }, 0);
+      
+      const dados = { vendedores, totalPedidos: pedidos.length, totalVendas };
       
       // Notificar componente pai sobre os dados
       if (onDataChange) {
@@ -106,14 +140,64 @@ const VendasPorVendedor = ({ dateFilter, onDataChange }) => {
     setError(null);
 
     try {
-      const filters = {
-        dataInicial: dateFilter.startDate,
-        dataFinal: dateFilter.endDate
+      // Buscar pedidos da API NestJS
+      const response = await nestjsApiClient.request('/api/orders', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+      
+      if (!response.success) {
+        throw new Error('Falha ao buscar dados da API');
+      }
+      
+      const todosPedidos = response.data || [];
+      
+      // Filtrar pedidos do vendedor específico
+      const pedidosVendedor = todosPedidos.filter(pedido => {
+        // Filtrar por vendedor
+        if (pedido.nome_vendedor !== nomeVendedor) return false;
+        
+        // Filtrar por data se necessário
+        if (!dateFilter?.startDate || !dateFilter?.endDate) return true;
+        
+        const dataPedido = new Date(pedido.data_pedido || pedido.created_at);
+        const startDate = new Date(dateFilter.startDate);
+        const endDate = new Date(dateFilter.endDate);
+        
+        return dataPedido >= startDate && dataPedido <= endDate;
+      });
+      
+      // Calcular estatísticas do vendedor
+      const totalVendas = pedidosVendedor.reduce((sum, p) => {
+        const valor = parseFloat(p.valor_total) || 0;
+        return sum + valor;
+      }, 0);
+      
+      const estatisticas = {
+        nome: nomeVendedor,
+        totalVendas,
+        totalPedidos: pedidosVendedor.length,
+        pedidos: pedidosVendedor
       };
-
-      const estatisticas = await vendasPorVendedorService.getEstatisticasVendedor(nomeVendedor, filters);
+      
+      // Debug: verificar dados do vendedor selecionado
+      console.log('📊 Vendedor selecionado - Dados:', {
+        nome: estatisticas.nome,
+        totalVendas: estatisticas.totalVendas,
+        totalPedidos: estatisticas.totalPedidos,
+        pedidos: estatisticas.pedidos.map(p => ({
+          numero: p.numero,
+          nome_cliente: p.nome_cliente,
+          valor_total: p.valor_total,
+          data_pedido: p.data_pedido,
+          situacao: p.situacao
+        }))
+      });
+      
       setVendedorSelecionado(estatisticas);
-      setPedidosVendedor(estatisticas.pedidos);
+      setPedidosVendedor(pedidosVendedor);
 
     } catch (err) {
       console.error('Erro ao buscar pedidos do vendedor:', err);
@@ -124,16 +208,20 @@ const VendasPorVendedor = ({ dateFilter, onDataChange }) => {
   };
 
   const formatCurrency = (value) => {
+    const numValue = parseFloat(value) || 0;
+    if (isNaN(numValue)) {
+      console.warn('⚠️ Valor inválido para formatação de moeda:', value);
+      return 'R$ 0,00';
+    }
     return new Intl.NumberFormat('pt-BR', {
       style: 'currency',
       currency: 'BRL'
-    }).format(value || 0);
+    }).format(numValue);
   };
 
   const formatDate = (dateString) => {
     if (!dateString) return 'N/A';
-    const date = new Date(dateString);
-    return date.toLocaleDateString('pt-BR');
+    return DateFormatter.formatToPTBR(dateString);
   };
 
   const getSituacaoColor = (situacao) => {
@@ -258,7 +346,7 @@ const VendasPorVendedor = ({ dateFilter, onDataChange }) => {
               <div className="text-left sm:text-right">
                 <p className="text-lg sm:text-xl font-bold text-white">{formatCurrency(vendedor.totalVendas)}</p>
                 <p className="text-xs sm:text-sm text-gray-400">
-                  Ticket médio: {formatCurrency(vendedor.totalVendas / vendedor.totalPedidos)}
+                  Ticket médio: {formatCurrency(vendedor.totalPedidos > 0 ? vendedor.totalVendas / vendedor.totalPedidos : 0)}
                 </p>
               </div>
             </div>
@@ -321,7 +409,7 @@ const VendasPorVendedor = ({ dateFilter, onDataChange }) => {
                 <TrendingUp className="w-5 h-5 text-purple-400" />
                 <span className="text-sm text-purple-300">Ticket Médio</span>
               </div>
-              <p className="text-2xl font-bold text-white">{formatCurrency(vendedorSelecionado.ticketMedio)}</p>
+              <p className="text-2xl font-bold text-white">{formatCurrency(vendedorSelecionado.totalPedidos > 0 ? vendedorSelecionado.totalVendas / vendedorSelecionado.totalPedidos : 0)}</p>
             </div>
           </div>
 
@@ -338,11 +426,11 @@ const VendasPorVendedor = ({ dateFilter, onDataChange }) => {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="font-medium text-white">Pedido #{pedido.numero}</p>
-                    <p className="text-sm text-gray-300">{pedido.cliente}</p>
-                    <p className="text-xs text-gray-400">{formatDate(pedido.dataPedido)}</p>
+                    <p className="text-sm text-gray-300">{pedido.nome_cliente || 'N/A'}</p>
+                    <p className="text-xs text-gray-400">{formatDate(pedido.data_pedido)}</p>
                   </div>
                   <div className="text-right">
-                    <p className="text-lg font-bold text-white">{formatCurrency(pedido.valor)}</p>
+                    <p className="text-lg font-bold text-white">{formatCurrency(pedido.valor_total)}</p>
                     <p className={`text-sm ${getSituacaoColor(pedido.situacao)}`}>
                       {pedido.situacao}
                     </p>

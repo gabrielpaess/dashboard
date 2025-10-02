@@ -1,0 +1,25 @@
+# Dockerfile para desenvolvimento local
+FROM node:20-alpine
+
+WORKDIR /app
+
+# Instalar dependências do sistema necessárias
+RUN apk add --no-cache openssl netcat-openbsd
+
+# Copiar package.json e package-lock.json
+COPY package*.json ./
+
+# Instalar dependências (incluindo devDependencies)
+RUN npm ci
+
+# Copiar código fonte
+COPY . .
+
+# Expor porta
+EXPOSE 3001
+
+# Comando para desenvolvimento (hot reload)
+CMD ["npm", "run", "start:dev"]
+
+
+

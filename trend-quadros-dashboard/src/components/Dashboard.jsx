@@ -14,7 +14,7 @@ import ProtectedRoute from './ProtectedRoute';
 import { Eye, Wrench, DollarSign, Package, Bell } from 'lucide-react';
 import DateFilter from './DateFilter';
 import { nestjsApiClient, nestjsDashboardService, validateApiConnection } from '../services';
-import { authService } from '../services/authServiceSimple';
+import { DateFormatter } from '../services/utils/DateFormatter.js';
 
 const Dashboard = ({ 
   isAuthenticated: propIsAuthenticated, 
@@ -70,6 +70,29 @@ const Dashboard = ({
     }
     setLoading(false);
   }, [propIsAuthenticated, propUser]);
+
+  // Função para verificar acesso baseada no nível do usuário
+  const hasAccessToTab = (tabLevel) => {
+    if (!user?.nivel) {
+      return false;
+    }
+
+    // Admin tem acesso a tudo
+    if (user.nivel === 'admin') {
+      return true;
+    }
+
+    // Mapear níveis de usuário para abas
+    const levelToTabMap = {
+      'vendas': 'sales',
+      'desenvolvimento': 'development', 
+      'producao': 'production',
+      'admin': 'overview'
+    };
+
+    const userTab = levelToTabMap[user.nivel];
+    return userTab === tabLevel;
+  };
 
   // Redirecionamento específico após login
   useEffect(() => {
@@ -258,11 +281,25 @@ const Dashboard = ({
       return statusMap[situacao] || 'processing';
     }
     
-    // Calcular dias restantes
-    const hoje = new Date();
-    const dataPrev = new Date(dataPrevista);
-    const diffTime = dataPrev - hoje;
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    // Calcular dias restantes usando a mesma lógica corrigida
+    const diasRestantes = calculateDaysRemaining(dataPrevista);
+    if (diasRestantes === undefined) {
+      // Se não conseguiu calcular, usar situação padrão
+      const statusMap = {
+        'Em aberto': 'processing',
+        'Aprovado': 'processing', 
+        'Preparando envio': 'processing',
+        'Faturado': 'invoiced',
+        'Pronto para envio': 'ready-to-ship',
+        'Enviado': 'shipped',
+        'Entregue': 'delivered',
+        'Não Entregue': 'not-delivered',
+        'Cancelado': 'cancelled'
+      };
+      return statusMap[situacao] || 'processing';
+    }
+    
+    const diffDays = diasRestantes;
     
     // Determinar status baseado na data conforme especificações:
     // data_prevista > 5: no prazo
@@ -281,7 +318,20 @@ const Dashboard = ({
   const calculateDaysRemaining = (dataPrevista) => {
     if (!dataPrevista) return undefined;
     const hoje = new Date();
-    const dataPrev = new Date(dataPrevista);
+    
+    // Usar DateFormatter para parsear corretamente a data
+    let dataPrev;
+    if (typeof dataPrevista === 'string' && dataPrevista.includes('/') && !dataPrevista.startsWith('20')) {
+      // Se está no formato DD/MM/YYYY, parsear corretamente
+      const [day, month, year] = dataPrevista.split('/');
+      dataPrev = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+    } else {
+      // Para outros formatos, usar parseDate do DateFormatter
+      dataPrev = DateFormatter.parseDate(dataPrevista);
+    }
+    
+    if (!dataPrev || isNaN(dataPrev.getTime())) return undefined;
+    
     const diffTime = dataPrev - hoje;
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
     return diffDays;
@@ -316,8 +366,17 @@ const Dashboard = ({
     try {
       console.log('🔍 Dashboard - Buscando dados da API NestJS...');
 
-      // Buscar dados da API NestJS
-      const response = await nestjsApiClient.request('/orders', {
+      // Verificar se está autenticado - OBRIGATÓRIO
+      if (!nestjsApiClient.isAuthenticated()) {
+        console.log('❌ Usuário não autenticado - acesso negado');
+        throw new Error('Usuário não autenticado. Faça login para acessar o dashboard.');
+      }
+
+      // Usuário autenticado - buscar dados completos
+      console.log('🔐 Usuário autenticado, buscando dados completos...');
+      
+      // Buscar pedidos (requer autenticação)
+      const response = await nestjsApiClient.request('/api/orders', {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -357,13 +416,36 @@ const Dashboard = ({
       // Para as metas, usar todos os pedidos (sem filtros de data)
       const allPedidos = response.data || [];
 
-      const formatDate = (date) => date.toISOString().split('T')[0];
+      const formatDate = (date) => {
+        // Converter Date para formato DD/MM/YYYY
+        const day = date.getDate().toString().padStart(2, '0');
+        const month = (date.getMonth() + 1).toString().padStart(2, '0');
+        const year = date.getFullYear();
+        return `${day}/${month}/${year}`;
+      };
 
       // Calcular períodos corretos para as metas
       const todayStr = formatDate(today);
       
       // Meta diária: pedidos do dia atual
-      const dailyOrders = allPedidos.filter(p => p.data_pedido === todayStr);
+      const dailyOrders = allPedidos.filter(p => {
+        if (!p.data_pedido) return false;
+        
+        // Converter data_pedido para formato YYYY-MM-DD para comparação
+        let pedidoDateStr;
+        if (p.data_pedido.includes('/')) {
+          // Se está no formato DD/MM/YYYY, converter para YYYY-MM-DD
+          const [day, month, year] = p.data_pedido.split('/');
+          pedidoDateStr = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+        } else if (p.data_pedido.includes('-')) {
+          // Se já está no formato YYYY-MM-DD, usar como está
+          pedidoDateStr = p.data_pedido;
+        } else {
+          return false;
+        }
+        
+        return pedidoDateStr === todayStr;
+      });
       
       // Meta semanal: pedidos da semana atual (domingo a sábado)
       const startOfWeek = new Date(today);
@@ -379,11 +461,37 @@ const Dashboard = ({
       const weeklyOrders = allPedidos.filter(p => {
         if (!p.data_pedido) return false;
         
-        // Criar data no fuso horário local para evitar problemas de UTC
-        const pedidoDate = new Date(p.data_pedido + 'T00:00:00');
+        // Converter data_pedido para Date object
+        let pedidoDate;
+        if (p.data_pedido.includes('/')) {
+          // Se está no formato DD/MM/YYYY, converter para Date
+          const [day, month, year] = p.data_pedido.split('/');
+          pedidoDate = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+        } else if (p.data_pedido.includes('-')) {
+          // Se está no formato YYYY-MM-DD, converter para Date
+          pedidoDate = new Date(p.data_pedido + 'T00:00:00');
+        } else {
+          return false;
+        }
+        
         if (isNaN(pedidoDate.getTime())) return false;
         
-        return pedidoDate >= startOfWeek && pedidoDate <= endOfWeek;
+        const isInWeek = pedidoDate >= startOfWeek && pedidoDate <= endOfWeek;
+        
+        // Debug para pedidos específicos
+        if (p.numero && (p.situacao === 'Preparando envio' || p.situacao === 'Faturado')) {
+          console.log('🔍 Debug Pedido Específico:', {
+            numero: p.numero,
+            situacao: p.situacao,
+            data_pedido: p.data_pedido,
+            pedidoDate: pedidoDate.toISOString().split('T')[0],
+            startOfWeek: startOfWeek.toISOString().split('T')[0],
+            endOfWeek: endOfWeek.toISOString().split('T')[0],
+            isInWeek
+          });
+        }
+        
+        return isInWeek;
       });
       
       // Meta mensal: pedidos do mês atual
@@ -397,8 +505,19 @@ const Dashboard = ({
       const monthlyOrders = allPedidos.filter(p => {
         if (!p.data_pedido) return false;
         
-        // Criar data no fuso horário local para evitar problemas de UTC
-        const pedidoDate = new Date(p.data_pedido + 'T00:00:00');
+        // Converter data_pedido para Date object
+        let pedidoDate;
+        if (p.data_pedido.includes('/')) {
+          // Se está no formato DD/MM/YYYY, converter para Date
+          const [day, month, year] = p.data_pedido.split('/');
+          pedidoDate = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+        } else if (p.data_pedido.includes('-')) {
+          // Se está no formato YYYY-MM-DD, converter para Date
+          pedidoDate = new Date(p.data_pedido + 'T00:00:00');
+        } else {
+          return false;
+        }
+        
         if (isNaN(pedidoDate.getTime())) return false;
         
         // Verificar se está no mesmo mês e ano
@@ -408,14 +527,65 @@ const Dashboard = ({
         return isSameMonth;
       });
 
-      // Calcular receita por período
-      const dailyRevenue = dailyOrders.reduce((sum, p) => sum + (p.valor_total || 0), 0);
-      const weeklyRevenue = weeklyOrders.reduce((sum, p) => sum + (p.valor_total || 0), 0);
-      const monthlyRevenue = monthlyOrders.reduce((sum, p) => sum + (p.valor_total || 0), 0);
+      // Calcular receita por período com validação
+      const dailyRevenue = dailyOrders.reduce((sum, p) => {
+        const valor = parseFloat(p.valor_total) || 0;
+        if (isNaN(valor)) {
+          console.warn('⚠️ Valor inválido encontrado no pedido:', p.numero, 'valor_total:', p.valor_total);
+        }
+        return sum + valor;
+      }, 0);
+      
+      const weeklyRevenue = weeklyOrders.reduce((sum, p) => {
+        const valor = parseFloat(p.valor_total) || 0;
+        if (isNaN(valor)) {
+          console.warn('⚠️ Valor inválido encontrado no pedido:', p.numero, 'valor_total:', p.valor_total);
+        }
+        return sum + valor;
+      }, 0);
+      
+      const monthlyRevenue = monthlyOrders.reduce((sum, p) => {
+        const valor = parseFloat(p.valor_total) || 0;
+        if (isNaN(valor)) {
+          console.warn('⚠️ Valor inválido encontrado no pedido:', p.numero, 'valor_total:', p.valor_total);
+        }
+        return sum + valor;
+      }, 0);
 
-      // Calcular WIP (Work in Progress) - situações de produção ativa
-      const situacoesProducao = ['Em aberto', 'Aprovado', 'Preparando envio', 'Preparando para envio', 'Faturado'];
+      // Logs de debug para vendas
+      console.log('📊 Debug Vendas:', {
+        dailyOrders: dailyOrders.length,
+        dailyRevenue,
+        weeklyOrders: weeklyOrders.length,
+        weeklyRevenue,
+        monthlyOrders: monthlyOrders.length,
+        monthlyRevenue,
+        todayStr,
+        sampleDailyOrder: dailyOrders[0],
+        sampleWeeklyOrder: weeklyOrders[0],
+        sampleMonthlyOrder: monthlyOrders[0]
+      });
+
+      // Calcular WIP (Work in Progress) - situações específicas de produção
+      const situacoesProducao = ['Em aberto', 'Aprovado', 'Preparando envio', 'Faturado'];
       const wipPedidos = pedidos.filter(p => situacoesProducao.includes(p.situacao));
+      
+      // Debug: verificar pedidos WIP
+      console.log('📊 Debug WIP Pedidos:', {
+        situacoesProducao,
+        totalPedidos: pedidos.length,
+        wipPedidos: wipPedidos.length,
+        wipPedidosPorSituacao: wipPedidos.reduce((acc, p) => {
+          const situacao = p.situacao;
+          acc[situacao] = (acc[situacao] || 0) + 1;
+          return acc;
+        }, {}),
+        sampleWipPedidos: wipPedidos.slice(0, 3).map(p => ({
+          numero: p.numero,
+          situacao: p.situacao,
+          data_pedido: p.data_pedido
+        }))
+      });
       const wipTotal = wipPedidos.reduce((sum, pedido) => {
         if (pedido.itens_json && Array.isArray(pedido.itens_json)) {
           return sum + pedido.itens_json.reduce((itemSum, item) => {
@@ -427,8 +597,46 @@ const Dashboard = ({
         return sum;
       }, 0);
 
-      // Calcular pedidos da semana com situações de produção
-      const weeklyProductionOrders = weeklyOrders.filter(p => situacoesProducao.includes(p.situacao));
+      // Calcular pedidos da semana com situações específicas (Preparando envio e Faturado)
+      // Incluir variações possíveis das situações
+      const situacoesPedidosSemana = [
+        'Preparando envio', 
+        'Preparando para envio', 
+        'Faturado',
+        'FATURADO',
+        'PREPARANDO ENVIO',
+        'Preparando Envio'
+      ];
+      
+      const weeklyProductionOrders = weeklyOrders.filter(p => {
+        const situacao = p.situacao?.trim();
+        return situacoesPedidosSemana.includes(situacao);
+      });
+      
+      // Debug: verificar pedidos da semana
+      console.log('📊 Debug Pedidos da Semana:', {
+        totalWeeklyOrders: weeklyOrders.length,
+        weeklyProductionOrders: weeklyProductionOrders.length,
+        situacoesPedidosSemana,
+        startOfWeek: startOfWeek.toISOString().split('T')[0],
+        endOfWeek: endOfWeek.toISOString().split('T')[0],
+        sampleOrders: weeklyOrders.slice(0, 3).map(p => ({
+          numero: p.numero,
+          situacao: p.situacao,
+          data_pedido: p.data_pedido
+        })),
+        productionOrders: weeklyProductionOrders.map(p => ({
+          numero: p.numero,
+          situacao: p.situacao,
+          data_pedido: p.data_pedido
+        })),
+        allSituacoes: [...new Set(weeklyOrders.map(p => p.situacao))],
+        situacoesComPedidos: weeklyOrders.reduce((acc, p) => {
+          const situacao = p.situacao?.trim();
+          acc[situacao] = (acc[situacao] || 0) + 1;
+          return acc;
+        }, {})
+      });
       
 
 
@@ -567,11 +775,11 @@ const Dashboard = ({
             status: status,
             // Adicionar campos necessários para DeliveryStatus
             willBeLate: diasRestantes !== undefined && diasRestantes <= 2 && diasRestantes >= 0,
-            deliveryDate: pedido.situacao === 'Entregue' ? new Date(pedido.data_prevista) : null,
-            promisedDate: pedido.data_prevista ? new Date(pedido.data_prevista) : null,
+            deliveryDate: pedido.situacao === 'Entregue' ? DateFormatter.parseDate(pedido.data_prevista) : null,
+            promisedDate: pedido.data_prevista ? DateFormatter.parseDate(pedido.data_prevista) : null,
             // Adicionar campos para cálculo de dias
             diasRestantes: diasRestantes,
-            // Mapear campos do Supabase para formato esperado
+            // Mapear campos da API para formato esperado
             order_id: pedido.numero || pedido.id,
             customer: pedido.nome_cliente,
             // Mapear itens para o formato esperado
@@ -620,7 +828,7 @@ const Dashboard = ({
                 name: `Pedido #${pedido.numero} - ${pedido.nome_cliente}`,
                 status: statusDisplay,
                 situacao: pedido.situacao,
-                deadline: pedido.data_prevista ? new Date(pedido.data_prevista).toLocaleDateString('pt-BR') : 'Sem prazo',
+                deadline: pedido.data_prevista ? DateFormatter.formatToPTBR(pedido.data_prevista) : 'Sem prazo',
                 diasRestantes: diasRestantes,
                 valor: pedido.valor_total || 0
               };
@@ -868,19 +1076,19 @@ const Dashboard = ({
           setActiveTab(newValue);
         }} className="w-full">
           <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 glass-effect p-1 h-auto gap-1">
-            {authService.hasAccessToTab('overview') && (
+            {hasAccessToTab('overview') && (
               <TabsTrigger value="overview" className="text-white data-[state=active]:bg-teal-600/50 data-[state=active]:text-white flex items-center gap-1 sm:gap-2 text-xs sm:text-sm px-2 sm:px-3 py-2"><Eye className="w-3 h-3 sm:w-4 sm:h-4"/><span className="hidden sm:inline">Visão Geral</span><span className="sm:hidden">Geral</span></TabsTrigger>
             )}
-            {authService.hasAccessToTab('sales') && (
+            {hasAccessToTab('sales') && (
               <TabsTrigger value="sales" className="text-white data-[state=active]:bg-green-600/50 data-[state=active]:text-white flex items-center gap-1 sm:gap-2 text-xs sm:text-sm px-2 sm:px-3 py-2"><DollarSign className="w-3 h-3 sm:w-4 sm:h-4"/><span className="hidden sm:inline">Vendas</span><span className="sm:hidden">Vendas</span></TabsTrigger>
             )}
-            {authService.hasAccessToTab('development') && (
+            {hasAccessToTab('development') && (
               <TabsTrigger value="development" className="text-white data-[state=active]:bg-pink-600/50 data-[state=active]:text-white flex items-center gap-1 sm:gap-2 text-xs sm:text-sm px-2 sm:px-3 py-2"><Wrench className="w-3 h-3 sm:w-4 sm:h-4"/><span className="hidden sm:inline">Desenvolvimento</span><span className="sm:hidden">Dev</span></TabsTrigger>
             )}
-            {authService.hasAccessToTab('production') && (
+            {hasAccessToTab('production') && (
               <TabsTrigger value="production" className="text-white data-[state=active]:bg-yellow-600/50 data-[state=active]:text-white flex items-center gap-1 sm:gap-2 text-xs sm:text-sm px-2 sm:px-3 py-2"><Package className="w-3 h-3 sm:w-4 sm:h-4"/><span className="hidden sm:inline">Produção</span><span className="sm:hidden">Prod</span></TabsTrigger>
             )}
-            {authService.hasAccessToTab('after-sales') && (
+            {hasAccessToTab('after-sales') && (
               <TabsTrigger value="after-sales" className="text-white data-[state=active]:bg-cyan-600/50 data-[state=active]:text-white flex items-center gap-1 sm:gap-2 text-xs sm:text-sm px-2 sm:px-3 py-2"><Bell className="w-3 h-3 sm:w-4 sm:h-4"/><span className="hidden sm:inline">Pós-venda</span><span className="sm:hidden">Pós</span></TabsTrigger>
             )}
           </TabsList>

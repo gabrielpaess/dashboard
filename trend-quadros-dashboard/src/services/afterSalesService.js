@@ -14,7 +14,7 @@ export async function getAfterSalesAlerts() {
     console.log('📞 Fetching after-sales alerts from NestJS API...');
 
     // Get all orders from NestJS API
-    const response = await nestjsApiClient.request('/orders', {
+    const response = await nestjsApiClient.request('/api/orders', {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
@@ -150,7 +150,7 @@ export async function getAllContacts() {
   try {
     console.log('📞 Fetching all contacts from NestJS API...');
 
-    const response = await nestjsApiClient.request('/orders', {
+    const response = await nestjsApiClient.request('/api/orders', {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
@@ -198,7 +198,7 @@ export async function getFullyContactedCustomers() {
   try {
     console.log('📞 Fetching fully contacted customers from NestJS API...');
 
-    const response = await nestjsApiClient.request('/orders', {
+    const response = await nestjsApiClient.request('/api/orders', {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',

@@ -82,9 +82,9 @@ const AfterSalesAlerts = () => {
             >
               <div className="flex items-center justify-between">
                 <div className="flex-1">
-                  <p className="font-medium text-white">{alert.customer}</p>
-                  <p className="text-xs text-gray-300">Pedido: {alert.pedido_id}</p>
-                  <p className="text-xs text-gray-400">Data prevista: {formatDateToBR(alert.promisedDate)}</p>
+                  <p className="font-medium text-white">{alert.nome_cliente}</p>
+                  <p className="text-xs text-gray-300">Pedido: {alert.numero}</p>
+                  <p className="text-xs text-gray-400">Data prevista: {formatDateToBR(alert.data_prevista)}</p>
                   <div className="flex gap-4 mt-1">
                     <span className={`text-xs ${alert.envio_15 ? 'text-green-400' : 'text-yellow-400'}`}>
                       {alert.envio_15 ? '✓ 15 dias' : '⏳ 15 dias'}
@@ -96,7 +96,7 @@ const AfterSalesAlerts = () => {
                 </div>
                 <div className="text-center mr-4">
                   <p className="text-sm font-semibold text-cyan-300">
-                    {alert.daysSinceAfterSales} dias
+                    {alert.daysSinceExpected} dias
                   </p>
                   <p className="text-xs text-gray-400">pós-venda</p>
                 </div>

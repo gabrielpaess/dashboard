@@ -53,28 +53,6 @@ export class ResponseMapper {
     };
   }
 
-  /**
-   * Mapear resposta do Supabase
-   * @param {Object} response - Resposta do Supabase
-   * @param {string} operation - Operação realizada
-   * @returns {Object} Resposta padronizada
-   */
-  static mapSupabaseResponse(response, operation = 'query') {
-    if (response.error) {
-      throw new Error(`Erro do Supabase: ${response.error.message}`);
-    }
-
-    return {
-      success: true,
-      data: response.data || [],
-      count: response.count || 0,
-      metadata: {
-        api: 'supabase',
-        operation,
-        timestamp: new Date().toISOString()
-      }
-    };
-  }
 
   /**
    * Mapear resposta da API Instagram

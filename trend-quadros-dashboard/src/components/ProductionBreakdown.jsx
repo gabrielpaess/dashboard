@@ -3,6 +3,17 @@ import { motion } from 'framer-motion';
 import { Package, Wrench, BarChart3, Users, Truck, Receipt } from 'lucide-react';
 
 const ProductionBreakdown = ({ data, detailed = false }) => {
+  // Debug: verificar dados recebidos
+  console.log('🔍 ProductionBreakdown - Dados recebidos:', {
+    data,
+    demand: data?.demand,
+    wipTotalPedidos: data?.wip?.totalPedidos,
+    capacity: data?.capacity,
+    itemsInProduction: data?.itemsInProduction,
+    preparandoEnvio: data?.preparandoEnvio,
+    faturado: data?.faturado
+  });
+
   // Validação de dados para evitar erros
   if (!data) {
     return (
@@ -18,8 +29,20 @@ const ProductionBreakdown = ({ data, detailed = false }) => {
     capacity = 0, 
     demand = 0, 
     preparandoEnvio = 0, 
-    faturado = 0 
+    faturado = 0,
+    wip = {}
   } = data;
+  
+  // Usar totalPedidos do wip se demand for 0
+  const pedidosDaSemana = demand > 0 ? demand : (wip.totalPedidos || 0);
+  
+  // Debug: mostrar valor final
+  console.log('📊 ProductionBreakdown - Valor final:', {
+    demand,
+    wipTotalPedidos: wip.totalPedidos,
+    pedidosDaSemana,
+    usandoWip: demand === 0
+  });
 
   
   const totalItems = Object.values(wipByStage).reduce((a, b) => a + (b || 0), 0);
@@ -58,7 +81,7 @@ const ProductionBreakdown = ({ data, detailed = false }) => {
       <div className="grid grid-cols-2 md:grid-cols-2 gap-4 mb-6">
         <motion.div variants={cardVariants} initial="hidden" animate="visible" custom={1} className="bg-gradient-to-br from-blue-500/20 to-cyan-500/20 rounded-lg p-4 border border-blue-500/30">
           <h3 className="text-sm font-medium text-blue-300 mb-2 flex items-center"><Users className="w-4 h-4 mr-2"/>Pedidos da Semana</h3>
-          <p className="text-3xl font-bold text-white">{demand}</p>
+          <p className="text-3xl font-bold text-white">{pedidosDaSemana}</p>
           <p className="text-xs text-gray-400">/ {capacity} de capacidade</p>
         </motion.div>
         <motion.div variants={cardVariants} initial="hidden" animate="visible" custom={2} className="bg-gradient-to-br from-yellow-500/20 to-orange-500/20 rounded-lg p-4 border border-yellow-500/30">

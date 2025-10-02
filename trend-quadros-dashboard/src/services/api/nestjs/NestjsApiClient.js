@@ -16,6 +16,17 @@ export class NestjsApiClient {
   }
 
   /**
+   * Obter token de autenticação do localStorage
+   * @returns {string|null} Token JWT ou null
+   */
+  getAuthToken() {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('authToken');
+    }
+    return null;
+  }
+
+  /**
    * Fazer requisição HTTP
    * @param {string} endpoint - Endpoint da API
    * @param {Object} options - Opções da requisição
@@ -23,6 +34,8 @@ export class NestjsApiClient {
    */
   async request(endpoint, options = {}) {
     const url = `${this.baseURL}${endpoint}`;
+    const token = this.getAuthToken();
+    
     const config = {
       method: 'GET',
       headers: {
@@ -33,7 +46,17 @@ export class NestjsApiClient {
       ...options
     };
 
+    // Adicionar token de autenticação se disponível
+    if (token) {
+      config.headers['Authorization'] = `Bearer ${token}`;
+    }
+
     console.log(`🌐 Fazendo requisição para: ${url}`);
+    if (token) {
+      console.log(`🔐 Com token de autenticação`);
+    } else {
+      console.log(`⚠️  Sem token de autenticação`);
+    }
 
     try {
       const response = await fetch(url, config);
@@ -41,9 +64,37 @@ export class NestjsApiClient {
       console.log(`📡 Resposta recebida: ${response.status} ${response.statusText}`);
       
       if (!response.ok) {
-        const errorText = await response.text();
-        console.error(`❌ Erro HTTP ${response.status}:`, errorText);
-        throw new Error(`HTTP ${response.status}: ${response.statusText} - ${errorText}`);
+        let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+        
+        try {
+          const errorData = await response.json();
+          console.error(`❌ Erro HTTP ${response.status}:`, errorData);
+          
+          // Extrair mensagem de erro da resposta da API
+          if (errorData.message) {
+            if (Array.isArray(errorData.message)) {
+              // Se for array de validação, pegar a primeira mensagem
+              errorMessage = errorData.message[0];
+            } else {
+              errorMessage = errorData.message;
+            }
+          }
+        } catch (parseError) {
+          // Se não conseguir fazer parse do JSON, usar o texto da resposta
+          const errorText = await response.text();
+          console.error(`❌ Erro HTTP ${response.status}:`, errorText);
+          errorMessage = errorText || errorMessage;
+        }
+        
+        // Se for 401, token pode estar inválido
+        if (response.status === 401) {
+          console.log(`🔐 Token inválido ou expirado, removendo do localStorage`);
+          if (typeof window !== 'undefined') {
+            localStorage.removeItem('authToken');
+          }
+        }
+        
+        throw new Error(errorMessage);
       }
 
       const data = await response.json();
@@ -135,7 +186,7 @@ export class NestjsApiClient {
    * @returns {Promise<Object>} Dados de overview
    */
   async getOverview(filters = {}) {
-    return this.get('/dashboard/overview', filters);
+    return this.get('/api/dashboard/overview', filters);
   }
 
   /**
@@ -144,7 +195,7 @@ export class NestjsApiClient {
    * @returns {Promise<Object>} Dados de vendas
    */
   async getSales(filters = {}) {
-    return this.get('/dashboard/sales', filters);
+    return this.get('/api/dashboard/sales', filters);
   }
 
   /**
@@ -153,7 +204,7 @@ export class NestjsApiClient {
    * @returns {Promise<Object>} Dados de produção
    */
   async getProduction(filters = {}) {
-    return this.get('/dashboard/production', filters);
+    return this.get('/api/dashboard/production', filters);
   }
 
   /**
@@ -162,7 +213,7 @@ export class NestjsApiClient {
    * @returns {Promise<Object>} Dados de pós-venda
    */
   async getAfterSales(filters = {}) {
-    return this.get('/dashboard/after-sales', filters);
+    return this.get('/api/dashboard/after-sales', filters);
   }
 
   // ===== ORDERS ENDPOINTS =====
@@ -173,7 +224,7 @@ export class NestjsApiClient {
    * @returns {Promise<Object>} Lista de pedidos
    */
   async getOrders(filters = {}) {
-    return this.get('/orders', filters);
+    return this.get('/api/orders', filters);
   }
 
   /**
@@ -182,7 +233,7 @@ export class NestjsApiClient {
    * @returns {Promise<Object>} Dados do pedido
    */
   async getOrder(id) {
-    return this.get(`/orders/${id}`);
+    return this.get(`/api/orders/${id}`);
   }
 
   /**
@@ -191,7 +242,7 @@ export class NestjsApiClient {
    * @returns {Promise<Object>} Pedido criado
    */
   async createOrder(orderData) {
-    return this.post('/orders', orderData);
+    return this.post('/api/orders', orderData);
   }
 
   /**
@@ -201,7 +252,7 @@ export class NestjsApiClient {
    * @returns {Promise<Object>} Pedido atualizado
    */
   async updateOrder(id, updates) {
-    return this.put(`/orders/${id}`, updates);
+    return this.put(`/api/orders/${id}`, updates);
   }
 
   /**
@@ -210,7 +261,7 @@ export class NestjsApiClient {
    * @returns {Promise<Object>} Resultado da operação
    */
   async deleteOrder(id) {
-    return this.delete(`/orders/${id}`);
+    return this.delete(`/api/orders/${id}`);
   }
 
   /**
@@ -218,7 +269,7 @@ export class NestjsApiClient {
    * @returns {Promise<Object>} Lista de pedidos
    */
   async getOrdersFor15DayNotification() {
-    return this.get('/orders/notifications/15-day');
+    return this.get('/api/orders/notifications/15-day');
   }
 
   /**
@@ -226,7 +277,7 @@ export class NestjsApiClient {
    * @returns {Promise<Object>} Lista de pedidos
    */
   async getOrdersFor45DayNotification() {
-    return this.get('/orders/notifications/45-day');
+    return this.get('/api/orders/notifications/45-day');
   }
 
   /**
@@ -236,7 +287,7 @@ export class NestjsApiClient {
    * @returns {Promise<Object>} Pedido atualizado
    */
   async updateOrderNotifications(id, notifications) {
-    return this.put(`/orders/${id}/notifications`, notifications);
+    return this.put(`/api/orders/${id}/notifications`, notifications);
   }
 
   /**
@@ -245,7 +296,7 @@ export class NestjsApiClient {
    * @returns {Promise<Object>} Estatísticas
    */
   async getDashboardStats(filters = {}) {
-    return this.get('/orders/stats/dashboard', filters);
+    return this.get('/api/orders/stats/dashboard', filters);
   }
 
   // ===== SYNC ENDPOINTS =====
@@ -255,7 +306,7 @@ export class NestjsApiClient {
    * @returns {Promise<Object>} Status da sincronização
    */
   async getSyncStatus() {
-    return this.get('/sync/status');
+    return this.get('/api/sync/status');
   }
 
   /**
@@ -263,7 +314,7 @@ export class NestjsApiClient {
    * @returns {Promise<Object>} Estatísticas de sincronização
    */
   async getSyncStats() {
-    return this.get('/sync/stats');
+    return this.get('/api/sync/stats');
   }
 
   /**
@@ -271,7 +322,7 @@ export class NestjsApiClient {
    * @returns {Promise<Object>} Resultado da operação
    */
   async startSync() {
-    return this.post('/sync/start');
+    return this.post('/api/sync/start');
   }
 
   /**
@@ -279,7 +330,7 @@ export class NestjsApiClient {
    * @returns {Promise<Object>} Resultado da operação
    */
   async stopSync() {
-    return this.post('/sync/stop');
+    return this.post('/api/sync/stop');
   }
 
   /**
@@ -287,7 +338,7 @@ export class NestjsApiClient {
    * @returns {Promise<Object>} Resultado da operação
    */
   async executeSync() {
-    return this.post('/sync/execute');
+    return this.post('/api/sync/execute');
   }
 
   /**
@@ -296,7 +347,7 @@ export class NestjsApiClient {
    * @returns {Promise<Object>} Resultado da operação
    */
   async executeFullSync(options = {}) {
-    return this.post('/sync/full', options);
+    return this.post('/api/sync/full', options);
   }
 
   /**
@@ -305,7 +356,7 @@ export class NestjsApiClient {
    * @returns {Promise<Object>} Resultado da operação
    */
   async executeIncrementalSync(options = {}) {
-    return this.post('/sync/incremental', options);
+    return this.post('/api/sync/incremental', options);
   }
 
   /**
@@ -313,7 +364,7 @@ export class NestjsApiClient {
    * @returns {Promise<Object>} Resultado do teste
    */
   async testTinyApi() {
-    return this.get('/sync/test-tiny');
+    return this.get('/api/sync/test-tiny');
   }
 
   /**
@@ -321,7 +372,62 @@ export class NestjsApiClient {
    * @returns {Promise<Object>} Resultado da operação
    */
   async resetRateLimit() {
-    return this.post('/sync/reset-rate-limit');
+    return this.post('/api/sync/reset-rate-limit');
+  }
+
+  // ===== AUTH METHODS =====
+
+  /**
+   * Fazer login
+   * @param {string} email - Email do usuário
+   * @param {string} password - Senha do usuário
+   * @returns {Promise<Object>} Resultado do login
+   */
+  async login(email, password) {
+    const response = await this.post('/api/auth/login', { email, password });
+    
+    if (response.success && response.data && response.data.access_token) {
+      // Salvar token no localStorage
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('authToken', response.data.access_token);
+        localStorage.setItem('user', JSON.stringify(response.data.user));
+      }
+      console.log('✅ Login realizado com sucesso');
+    }
+    
+    return response;
+  }
+
+  /**
+   * Fazer logout
+   */
+  logout() {
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('authToken');
+      localStorage.removeItem('user');
+    }
+    console.log('🚪 Logout realizado');
+  }
+
+  /**
+   * Verificar se está autenticado
+   * @returns {boolean} Se está autenticado
+   */
+  isAuthenticated() {
+    const token = this.getAuthToken();
+    return !!token;
+  }
+
+  /**
+   * Obter usuário atual
+   * @returns {Object|null} Dados do usuário ou null
+   */
+  getCurrentUser() {
+    if (typeof window !== 'undefined') {
+      const userStr = localStorage.getItem('user');
+      return userStr ? JSON.parse(userStr) : null;
+    }
+    return null;
   }
 
   // ===== UTILITY METHODS =====
@@ -332,7 +438,7 @@ export class NestjsApiClient {
    */
   async isOnline() {
     try {
-      const response = await this.get('/sync/status');
+      const response = await this.get('/api/sync/status');
       return response.success;
     } catch (error) {
       return false;
@@ -348,6 +454,7 @@ export class NestjsApiClient {
       baseURL: this.baseURL,
       timeout: this.timeout,
       online: await this.isOnline(),
+      authenticated: this.isAuthenticated(),
       timestamp: new Date().toISOString()
     };
   }

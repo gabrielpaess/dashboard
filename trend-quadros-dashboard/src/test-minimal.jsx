@@ -33,8 +33,8 @@ const TestMinimal = () => {
         React.createElement('li', null, `MODE: ${import.meta.env.MODE}`),
         React.createElement('li', null, `DEV: ${import.meta.env.DEV ? 'Sim' : 'Não'}`),
         React.createElement('li', null, `PROD: ${import.meta.env.PROD ? 'Sim' : 'Não'}`),
-        React.createElement('li', null, `VITE_SUPABASE_URL: ${import.meta.env.VITE_SUPABASE_URL ? 'Configurada' : 'Não configurada'}`),
-        React.createElement('li', null, `VITE_SUPABASE_ANON_KEY: ${import.meta.env.VITE_SUPABASE_ANON_KEY ? 'Configurada' : 'Não configurada'}`)
+        React.createElement('li', null, `VITE_API_URL: ${import.meta.env.VITE_API_URL ? 'Configurada' : 'Não configurada'}`),
+        React.createElement('li', null, `VITE_API_BASE_URL: ${import.meta.env.VITE_API_BASE_URL ? 'Configurada' : 'Não configurada'}`)
       )
     ),
       React.createElement('div', {
@@ -64,13 +64,14 @@ const TestMinimal = () => {
         React.createElement('button', {
           onClick: async () => {
             try {
-              console.log('🧪 Testando conexão com Supabase...');
-              const response = await fetch('/api/test-frontend');
+              console.log('🧪 Testando conexão com API...');
+              const apiUrl = import.meta.env.VITE_API_URL || 'http://168.231.90.41:3001';
+              const response = await fetch(`${apiUrl}/api/health`);
               const data = await response.json();
-              console.log('🧪 Resposta do Supabase:', data);
-              alert(`Supabase OK! Status: ${response.status}`);
+              console.log('🧪 Resposta da API:', data);
+              alert(`API OK! Status: ${response.status}`);
             } catch (error) {
-              console.error('🧪 Erro no Supabase:', error);
+              console.error('🧪 Erro na API:', error);
               alert(`Erro: ${error.message}`);
             }
           },
@@ -82,7 +83,7 @@ const TestMinimal = () => {
             borderRadius: '4px',
             cursor: 'pointer'
           }
-        }, 'Testar Supabase')
+        }, 'Testar API')
       )
   );
 };

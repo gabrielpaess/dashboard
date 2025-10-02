@@ -24,9 +24,9 @@ src/services/
 │   ├── tiny/                    # API Tiny
 │   │   ├── TinyApiClient.js     # Cliente específico Tiny
 │   │   └── TinyOrderService.js  # Serviço de pedidos Tiny
-│   ├── supabase/                # Supabase
-│   │   ├── SupabaseClient.js    # Cliente Supabase
-│   │   └── SupabaseOrderService.js # Serviço de pedidos Supabase
+│   ├── nestjs/                  # NestJS API
+│   │   ├── NestjsApiClient.js   # Cliente NestJS
+│   │   └── NestjsOrderService.js # Serviço de pedidos NestJS
 │   └── instagram/               # Instagram (preparado)
 │       ├── InstagramApiClient.js
 │       └── InstagramConversationService.js
@@ -57,7 +57,7 @@ import { orderRepository, syncService, validateAllConnections } from '@/services
 
 ```javascript
 // Buscar pedidos
-const response = await orderRepository.getSupabaseOrders({
+const response = await orderRepository.getNestjsOrders({
   dataInicial: '2024-01-01',
   dataFinal: '2024-01-31'
 });
@@ -76,7 +76,7 @@ import { createServices } from '@/services';
 
 const customServices = createServices({
   tiny: { timeout: 20000 },
-  supabase: { cache: { ttl: 600000 } }
+  nestjs: { cache: { ttl: 600000 } }
 });
 ```
 
@@ -158,8 +158,8 @@ const data = await legacyServiceAdapter.processOrderDataCentralized(dateFilter);
 |----------------|--------------|
 | `apiService` | `tinyOrderService` |
 | `tinyApiService` | `tinyOrderService` |
-| `pedidosService` | `supabaseOrderService` |
-| `pedidosCentralizedService` | `supabaseOrderService` |
+| `pedidosService` | `nestjsOrderService` |
+| `pedidosCentralizedService` | `nestjsOrderService` |
 | `orderService` | `orderRepository` |
 | `realtimeSyncService` | `syncService` |
 
@@ -171,10 +171,9 @@ const data = await legacyServiceAdapter.processOrderDataCentralized(dateFilter);
 # Tiny API
 VITE_TINY_API_TOKEN=your_token_here
 
-# Supabase
-VITE_SUPABASE_URL=your_supabase_url
-VITE_SUPABASE_ANON_KEY=your_anon_key
-VITE_SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
+# NestJS API
+VITE_API_URL=your_api_url
+VITE_API_BASE_URL=your_api_base_url
 
 # Instagram (opcional)
 VITE_INSTAGRAM_ACCESS_TOKEN=your_access_token
@@ -200,7 +199,7 @@ const tinyConfig = apiConfig.getTinyConfig();
 
 ```javascript
 const stats = orderRepository.getRepositoryStats();
-console.log('Cache hit rate:', stats.supabase.cache.hitRate);
+console.log('Cache hit rate:', stats.nestjs.cache.hitRate);
 ```
 
 ### Estatísticas de Rate Limiting
@@ -226,7 +225,7 @@ import { validateAllConnections } from '@/services';
 
 const connections = await validateAllConnections();
 console.log('Tiny:', connections.tiny);
-console.log('Supabase:', connections.supabase);
+console.log('NestJS:', connections.nestjs);
 console.log('Instagram:', connections.instagram);
 ```
 

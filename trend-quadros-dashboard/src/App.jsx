@@ -2,10 +2,11 @@ import React, { useState, useEffect } from 'react';
 // import { Helmet } from 'react-helmet'; // Removido temporariamente
 import Dashboard from './components/Dashboard';
 import LoadingScreen from './components/LoadingScreen';
+import Login from './components/Login';
 import NestjsDashboardTest from './components/NestjsDashboardTest';
 import ApiConnectivityTest from './components/ApiConnectivityTest';
 import { Toaster } from './components/ui/toaster';
-import { authService } from './services/authServiceSimple';
+import { nestjsApiClient } from './services';
 
 function App() {
   const [isLoading, setIsLoading] = useState(true);
@@ -23,17 +24,12 @@ function App() {
       try {
         console.log('🔍 App - Iniciando verificação de autenticação...');
         
-        const authenticated = authService.isLoggedIn();
-        const currentUser = authService.getCurrentUser();
+        const authenticated = nestjsApiClient.isAuthenticated();
+        const currentUser = nestjsApiClient.getCurrentUser();
         
         console.log('🔍 App - Verificando autenticação:', { 
           authenticated, 
-          currentUser,
-          authServiceState: {
-            isAuthenticated: authService.isAuthenticated,
-            userLevel: authService.userLevel,
-            currentUser: authService.currentUser
-          }
+          currentUser
         });
         
         setIsAuthenticated(authenticated);
@@ -67,8 +63,8 @@ function App() {
     
     // Forçar re-verificação da autenticação após um breve delay
     setTimeout(() => {
-      const authenticated = authService.isLoggedIn();
-      const currentUser = authService.getCurrentUser();
+      const authenticated = nestjsApiClient.isAuthenticated();
+      const currentUser = nestjsApiClient.getCurrentUser();
       
       if (authenticated && currentUser) {
         setUser(currentUser);
@@ -81,6 +77,7 @@ function App() {
   // Função para lidar com logout
   const handleLogout = () => {
     console.log('🚪 App - Logout realizado');
+    nestjsApiClient.logout();
     setUser(null);
     setIsAuthenticated(false);
   };
@@ -112,6 +109,17 @@ function App() {
       ) : window.location.search.includes('connectivity') ? (
         <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-indigo-900 text-slate-50 p-8">
           <ApiConnectivityTest />
+          <Toaster />
+        </div>
+      ) : !isAuthenticated ? (
+        <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-indigo-900 text-slate-50 flex items-center justify-center">
+          <div className="w-full max-w-md">
+            <div className="text-center mb-8">
+              <h1 className="text-4xl font-bold text-white mb-4">Ponto Quadros</h1>
+              <p className="text-slate-300">Faça login para acessar o dashboard</p>
+            </div>
+            <Login onLoginSuccess={handleLoginSuccess} />
+          </div>
           <Toaster />
         </div>
       ) : (

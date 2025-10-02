@@ -44,14 +44,27 @@ const SalesGoals = ({ data }) => {
   };
 
   const formatCurrency = (value) => {
+    const numValue = parseFloat(value) || 0;
+    if (isNaN(numValue)) {
+      console.warn('⚠️ Valor inválido para formatação de moeda:', value);
+      return 'R$ 0,00';
+    }
     return new Intl.NumberFormat('pt-BR', {
       style: 'currency',
       currency: 'BRL'
-    }).format(value);
+    }).format(numValue);
   };
 
   const calculateProgress = (current, goal) => {
-    return Math.min((current / goal) * 100, 100);
+    const currentNum = parseFloat(current) || 0;
+    const goalNum = parseFloat(goal) || 1; // Evitar divisão por zero
+    
+    if (isNaN(currentNum) || isNaN(goalNum)) {
+      console.warn('⚠️ Valores inválidos para cálculo de progresso:', { current, goal });
+      return 0;
+    }
+    
+    return Math.min((currentNum / goalNum) * 100, 100);
   };
 
   return (

@@ -4,7 +4,7 @@ import { Eye, EyeOff, Lock, Mail, User, AlertCircle, CheckCircle } from 'lucide-
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
-import { authService } from '../services/authServiceSimple';
+import { nestjsApiClient } from '../services';
 
 const Login = ({ onLoginSuccess }) => {
   const [email, setEmail] = useState('');
@@ -25,8 +25,22 @@ const Login = ({ onLoginSuccess }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
+    // Validações básicas
     if (!email || !password) {
       setError('Por favor, preencha todos os campos');
+      return;
+    }
+
+    // Validação de email
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      setError('Por favor, insira um email válido');
+      return;
+    }
+
+    // Validação de senha
+    if (password.length < 6) {
+      setError('A senha deve ter pelo menos 6 caracteres');
       return;
     }
 
@@ -35,19 +49,52 @@ const Login = ({ onLoginSuccess }) => {
     setSuccess('');
 
     try {
-      const result = await authService.login(email, password);
+      console.log('🔐 Tentando fazer login...');
+      const result = await nestjsApiClient.login(email, password);
       
       if (result.success) {
         setSuccess('Login realizado com sucesso! Redirecionando...');
+        console.log('✅ Login bem-sucedido');
         setTimeout(() => {
-          onLoginSuccess(result.user);
+          onLoginSuccess(result.data.user);
         }, 1500);
       } else {
-        setError(result.message);
+        // Tratar diferentes tipos de erro
+        let errorMessage = result.error || 'Erro desconhecido';
+        
+        // Melhorar mensagens de erro específicas
+        if (errorMessage.includes('Email ou senha inválidos')) {
+          errorMessage = 'Email ou senha incorretos. Verifique suas credenciais.';
+        } else if (errorMessage.includes('email must be an email')) {
+          errorMessage = 'Por favor, insira um email válido.';
+        } else if (errorMessage.includes('password must be longer')) {
+          errorMessage = 'A senha deve ter pelo menos 6 caracteres.';
+        } else if (errorMessage.includes('Erro de conectividade')) {
+          errorMessage = 'Erro de conexão. Verifique sua internet e tente novamente.';
+        }
+        
+        setError(errorMessage);
+        console.error('❌ Erro no login:', result.error);
       }
     } catch (error) {
-      console.error('Erro durante login:', error);
-      setError('Erro interno do servidor');
+      console.error('❌ Erro durante login:', error);
+      
+      // Tratar diferentes tipos de erro no catch
+      let errorMessage = 'Erro interno do servidor';
+      
+      if (error.message.includes('Email ou senha inválidos')) {
+        errorMessage = 'Email ou senha incorretos. Verifique suas credenciais.';
+      } else if (error.message.includes('email must be an email')) {
+        errorMessage = 'Por favor, insira um email válido.';
+      } else if (error.message.includes('password must be longer')) {
+        errorMessage = 'A senha deve ter pelo menos 6 caracteres.';
+      } else if (error.message.includes('Erro de conectividade')) {
+        errorMessage = 'Erro de conexão. Verifique sua internet e tente novamente.';
+      } else if (error.message.includes('Failed to fetch')) {
+        errorMessage = 'Não foi possível conectar ao servidor. Verifique sua internet.';
+      }
+      
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }

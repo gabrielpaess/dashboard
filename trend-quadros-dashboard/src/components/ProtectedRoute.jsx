@@ -1,45 +1,20 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { Lock, AlertTriangle } from 'lucide-react';
-import { authService } from '../services/authServiceSimple';
 
 const ProtectedRoute = ({ children, requiredLevel, fallback = null, user, isAuthenticated }) => {
-  // Usar props se disponíveis, senão usar authService como fallback
-  let currentUser = user;
-  let currentAuth = isAuthenticated;
-  
-  if (!currentUser || currentAuth === undefined) {
-    // Forçar sincronização se não tiver props
-    const syncResult = authService.forceSync();
-    currentUser = currentUser || syncResult.user;
-    currentAuth = currentAuth !== undefined ? currentAuth : syncResult.isAuthenticated;
-  }
-  
-  const userLevel = currentUser?.nivel;
+  const userLevel = user?.nivel;
 
   // Debug logs
   console.log('🔍 ProtectedRoute - Verificando acesso:', {
-    isAuthenticated: currentAuth,
-    user: currentUser,
+    isAuthenticated,
+    user,
     userLevel,
-    requiredLevel,
-    hasAccess: authService.hasAccessToTab(requiredLevel)
+    requiredLevel
   });
 
-  // Log específico para aba sales
-  if (requiredLevel === 'sales') {
-    console.log('🔍 ProtectedRoute SALES - Detalhes:', {
-      currentAuth,
-      currentUser,
-      userLevel,
-      hasAccess: authService.hasAccessToTab(requiredLevel),
-      authServiceUser: authService.getCurrentUser(),
-      authServiceAuth: authService.isLoggedIn()
-    });
-  }
-
   // Se não estiver autenticado, não renderizar nada
-  if (!currentAuth) {
+  if (!isAuthenticated) {
     console.log('❌ ProtectedRoute - Usuário não autenticado');
     return null;
   }
@@ -50,8 +25,58 @@ const ProtectedRoute = ({ children, requiredLevel, fallback = null, user, isAuth
     return children;
   }
 
+  // Função para verificar acesso baseada no nível do usuário
+  const hasAccessToTab = (tabLevel) => {
+    if (!userLevel) {
+      console.log('❌ hasAccessToTab - Sem userLevel');
+      return false;
+    }
+
+    // Admin tem acesso a tudo
+    if (userLevel === 'admin') {
+      console.log('✅ hasAccessToTab - Admin tem acesso a tudo');
+      return true;
+    }
+
+    // Mapear níveis de usuário para abas
+    const levelToTabMap = {
+      'vendas': 'sales',
+      'desenvolvimento': 'development', 
+      'producao': 'production',
+      'admin': 'overview'
+    };
+
+    const userTab = levelToTabMap[userLevel];
+    const hasAccess = userTab === tabLevel;
+    
+    console.log('🔍 hasAccessToTab - Verificação:', {
+      userLevel,
+      userTab,
+      requiredTab: tabLevel,
+      hasAccess
+    });
+
+    return hasAccess;
+  };
+
+  // Função para obter nome do nível do usuário
+  const getUserLevelDisplayName = () => {
+    if (!userLevel) {
+      return 'Nenhum';
+    }
+
+    const levelNames = {
+      'admin': 'Administrador',
+      'vendas': 'Vendas',
+      'desenvolvimento': 'Desenvolvimento',
+      'producao': 'Produção'
+    };
+
+    return levelNames[userLevel] || userLevel;
+  };
+
   // Verificar se o usuário tem acesso ao nível requerido
-  const hasAccess = authService.hasAccessToTab(requiredLevel);
+  const hasAccess = hasAccessToTab(requiredLevel);
   console.log('🔍 ProtectedRoute - Verificação de acesso:', { hasAccess, userLevel, requiredLevel });
 
   if (!hasAccess) {
@@ -76,7 +101,7 @@ const ProtectedRoute = ({ children, requiredLevel, fallback = null, user, isAuth
         
         <p className="text-gray-300 mb-4 max-w-md">
           Você não tem permissão para acessar esta seção. 
-          Seu nível de acesso atual: <strong>{authService.getUserLevelDisplayName()}</strong>
+          Seu nível de acesso atual: <strong>{getUserLevelDisplayName()}</strong>
         </p>
 
         <div className="flex items-center space-x-2 text-yellow-400 bg-yellow-500/20 border border-yellow-500/30 rounded-lg p-3">

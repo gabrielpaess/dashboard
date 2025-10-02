@@ -1,11 +1,8 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { TrendingUp, TrendingDown, DollarSign, Target } from 'lucide-react';
-import { Button } from './ui/button';
-import { useToast } from './ui/use-toast';
+import { TrendingUp, TrendingDown, DollarSign } from 'lucide-react';
 
 const SalesMetrics = ({ data, detailed = false }) => {
-  const { toast } = useToast();
   
   // Validação de dados para evitar erros
   if (!data || !data.daily || !data.weekly || !data.monthly) {
@@ -17,28 +14,40 @@ const SalesMetrics = ({ data, detailed = false }) => {
   }
 
   const formatCurrency = (value) => {
+    const numValue = parseFloat(value) || 0;
+    if (isNaN(numValue)) {
+      console.warn('⚠️ Valor inválido para formatação de moeda:', value);
+      return 'R$ 0,00';
+    }
     return new Intl.NumberFormat('pt-BR', {
       style: 'currency',
       currency: 'BRL'
-    }).format(value || 0);
+    }).format(numValue);
   };
 
   const calculateProgress = (current, goal) => {
-    if (!current || !goal) return 0;
-    return Math.min((current / goal) * 100, 100);
+    const currentNum = parseFloat(current) || 0;
+    const goalNum = parseFloat(goal) || 1; // Evitar divisão por zero
+    
+    if (isNaN(currentNum) || isNaN(goalNum)) {
+      console.warn('⚠️ Valores inválidos para cálculo de progresso:', { current, goal });
+      return 0;
+    }
+    
+    return Math.min((currentNum / goalNum) * 100, 100);
   };
 
   const calculateGrowth = (current, previous) => {
-    if (!current || !previous) return 0;
-    return ((current - previous) / previous) * 100;
+    const currentNum = parseFloat(current) || 0;
+    const previousNum = parseFloat(previous) || 0;
+    
+    if (isNaN(currentNum) || isNaN(previousNum) || previousNum === 0) {
+      return 0;
+    }
+    
+    return ((currentNum - previousNum) / previousNum) * 100;
   };
 
-  const handleDetailedView = () => {
-    toast({
-      title: "🚧 Funcionalidade em desenvolvimento",
-      description: "Esta funcionalidade ainda não foi implementada—mas não se preocupe! Você pode solicitá-la no seu próximo prompt! 🚀"
-    });
-  };
 
   return (
     <motion.div
@@ -53,11 +62,6 @@ const SalesMetrics = ({ data, detailed = false }) => {
           <span className="hidden sm:inline">Métricas de Vendas</span>
           <span className="sm:hidden">Vendas</span>
         </h2>
-        {!detailed && (
-          <Button variant="outline" size="sm" onClick={handleDetailedView} className="text-white border-white/20">
-            Ver Detalhes
-          </Button>
-        )}
       </div>
 
       <div className="space-y-4 sm:space-y-6">

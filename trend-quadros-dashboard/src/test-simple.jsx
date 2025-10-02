@@ -27,8 +27,8 @@ const TestSimple = () => {
           <li>MODE: {import.meta.env.MODE}</li>
           <li>DEV: {import.meta.env.DEV ? 'Sim' : 'Não'}</li>
           <li>PROD: {import.meta.env.PROD ? 'Sim' : 'Não'}</li>
-          <li>VITE_SUPABASE_URL: {import.meta.env.VITE_SUPABASE_URL ? 'Configurada' : 'Não configurada'}</li>
-          <li>VITE_SUPABASE_ANON_KEY: {import.meta.env.VITE_SUPABASE_ANON_KEY ? 'Configurada' : 'Não configurada'}</li>
+          <li>VITE_API_URL: {import.meta.env.VITE_API_URL ? 'Configurada' : 'Não configurada'}</li>
+          <li>VITE_API_BASE_URL: {import.meta.env.VITE_API_BASE_URL ? 'Configurada' : 'Não configurada'}</li>
         </ul>
       </div>
       
@@ -57,14 +57,15 @@ const TestSimple = () => {
         <button 
           onClick={async () => {
             try {
-              console.log('🧪 Testando fetch...');
-              const response = await fetch('/api/test-frontend');
+              console.log('🧪 Testando API...');
+              const apiUrl = import.meta.env.VITE_API_URL || 'http://168.231.90.41:3001';
+              const response = await fetch(`${apiUrl}/api/health`);
               const data = await response.json();
-              console.log('🧪 Resposta do fetch:', data);
-              alert(`Fetch funcionando! Status: ${response.status}`);
+              console.log('🧪 Resposta da API:', data);
+              alert(`API funcionando! Status: ${response.status}`);
             } catch (error) {
-              console.error('🧪 Erro no fetch:', error);
-              alert(`Erro no fetch: ${error.message}`);
+              console.error('🧪 Erro na API:', error);
+              alert(`Erro na API: ${error.message}`);
             }
           }}
           style={{
@@ -76,7 +77,7 @@ const TestSimple = () => {
             cursor: 'pointer'
           }}
         >
-          Testar Fetch
+          Testar API
         </button>
       </div>
     </div>

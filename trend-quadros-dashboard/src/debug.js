@@ -27,8 +27,8 @@ export const debug = {
     debug.log('Verificando variáveis de ambiente...');
     
     const envVars = {
-      VITE_SUPABASE_URL: import.meta.env.VITE_SUPABASE_URL,
-      VITE_SUPABASE_ANON_KEY: import.meta.env.VITE_SUPABASE_ANON_KEY,
+      VITE_API_URL: import.meta.env.VITE_API_URL,
+      VITE_API_BASE_URL: import.meta.env.VITE_API_BASE_URL,
       NODE_ENV: import.meta.env.NODE_ENV,
       MODE: import.meta.env.MODE,
       DEV: import.meta.env.DEV,
@@ -103,33 +103,26 @@ export const debug = {
     return errors;
   },
 
-  // Testar conexão com Supabase
-  testSupabaseConnection: async () => {
-    debug.log('Testando conexão com Supabase...');
+  // Testar conexão com API
+  testApiConnection: async () => {
+    debug.log('Testando conexão com API...');
     
     try {
-      const { createClient } = await import('@supabase/supabase-js');
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://168.231.90.41:3001';
       
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://jpkpifxctubvauwjvimd.supabase.co';
-      const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Impwa3BpZnhjdHVidmF1d2p2aW1kIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTY5ODg2NDYsImV4cCI6MjA3MjU2NDY0Nn0.A7cXsrpIsN4TdEIV77wWRSBa-kf9YlHv-vZARlm2p20';
+      const response = await fetch(`${apiUrl}/api/health`);
       
-      const supabase = createClient(supabaseUrl, supabaseKey);
-      
-      const { data, error } = await supabase
-        .from('pedidos')
-        .select('id')
-        .limit(1);
-
-      if (error) {
-        debug.error('Erro na conexão com Supabase:', error);
-        return { success: false, error };
+      if (!response.ok) {
+        debug.error('Erro na conexão com API:', response.statusText);
+        return { success: false, error: response.statusText };
       }
 
-      debug.success('Conexão com Supabase OK', { data });
+      const data = await response.json();
+      debug.success('Conexão com API OK', { data });
       return { success: true, data };
       
     } catch (error) {
-      debug.error('Erro ao testar Supabase:', error);
+      debug.error('Erro ao testar API:', error);
       return { success: false, error };
     }
   },
@@ -150,8 +143,8 @@ export const debug = {
     // 4. Verificar erros no console
     debug.checkConsoleErrors();
     
-    // 5. Testar Supabase
-    await debug.testSupabaseConnection();
+    // 5. Testar API
+    await debug.testApiConnection();
     
     debug.log('=== TESTES DE DEBUG CONCLUÍDOS ===');
   }

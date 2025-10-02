@@ -59,6 +59,13 @@ export class DateFormatter {
     if (!dateInput) return null;
     
     try {
+      const dateString = String(dateInput);
+      
+      // Se já está no formato DD/MM/YYYY, retorna como está
+      if (dateString.includes('/') && dateString.length === 10 && !dateString.startsWith('20')) {
+        return dateString;
+      }
+      
       const date = this.parseDate(dateInput);
       if (!date) return null;
       
@@ -138,8 +145,14 @@ export class DateFormatter {
       return new Date(parseInt(year), parseInt(month) - 1, parseInt(day), 12, 0, 0, 0);
     }
     
+    // Se está no formato YYYY/MM/DD (da API)
+    if (dateString.includes('/') && dateString.length === 10 && dateString.startsWith('20')) {
+      const [year, month, day] = dateString.split('/');
+      return new Date(parseInt(year), parseInt(month) - 1, parseInt(day), 12, 0, 0, 0);
+    }
+    
     // Se está no formato DD/MM/YYYY
-    if (dateString.includes('/') && dateString.length === 10) {
+    if (dateString.includes('/') && dateString.length === 10 && !dateString.startsWith('20')) {
       const [day, month, year] = dateString.split('/');
       return new Date(parseInt(year), parseInt(month) - 1, parseInt(day), 12, 0, 0, 0);
     }
