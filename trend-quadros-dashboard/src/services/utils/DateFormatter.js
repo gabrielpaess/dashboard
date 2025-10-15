@@ -62,8 +62,13 @@ export class DateFormatter {
       const dateString = String(dateInput);
       
       // Se já está no formato DD/MM/YYYY, retorna como está
-      if (dateString.includes('/') && dateString.length === 10 && !dateString.startsWith('20')) {
-        return dateString;
+      // Verificar se é DD/MM/YYYY (não YYYY/MM/DD)
+      if (dateString.includes('/') && dateString.length === 10 && !dateString.includes('-')) {
+        const parts = dateString.split('/');
+        // Se o primeiro elemento tem 2 dígitos e o terceiro tem 4 dígitos, é DD/MM/YYYY
+        if (parts[0].length === 2 && parts[2].length === 4) {
+          return dateString;
+        }
       }
       
       const date = this.parseDate(dateInput);

@@ -4,7 +4,7 @@ import SalesGoals from '../SalesGoals';
 import VendasPorVendedor from '../VendasPorVendedor';
 import { motion } from 'framer-motion';
 
-const SalesView = ({ data, dateFilter }) => {
+const SalesView = ({ data, dateFilter, user }) => {
   // Validação de dados para evitar erros
   if (!data) {
     return (
@@ -22,7 +22,7 @@ const SalesView = ({ data, dateFilter }) => {
       transition={{ duration: 0.5 }}
     >
       {/* Metas de Vendas - Largura completa */}
-      <SalesGoals data={data.salesMetrics} />
+      <SalesGoals data={data.salesMetrics} user={user} />
       
       {/* Layout de duas colunas: Métricas à esquerda, Vendas por Vendedor à direita */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

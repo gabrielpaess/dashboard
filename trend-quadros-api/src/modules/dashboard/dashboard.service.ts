@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Between } from 'typeorm';
 import { Pedido } from '../../database/entities/pedido.entity';
 import { GetOrdersQueryDto } from '../../common/dto/orders.dto';
+import { SalesGoalsService } from '../sales-goals/sales-goals.service';
 
 export interface Alert15Days {
   id: number;
@@ -35,7 +36,27 @@ export class DashboardService {
   constructor(
     @InjectRepository(Pedido)
     private pedidoRepository: Repository<Pedido>,
+    private salesGoalsService: SalesGoalsService,
   ) {}
+
+  // Função auxiliar para parsear datas do formato DD/MM/YYYY ou YYYY-MM-DD
+  private parseDate(dateString: string): Date | null {
+    if (!dateString) return null;
+    
+    try {
+      if (dateString.includes('/')) {
+        // Formato DD/MM/YYYY
+        const [day, month, year] = dateString.split('/');
+        return new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+      } else if (dateString.includes('-')) {
+        // Formato YYYY-MM-DD
+        return new Date(dateString);
+      }
+      return null;
+    } catch {
+      return null;
+    }
+  }
 
   async getOverviewData(query: GetOrdersQueryDto) {
     const queryBuilder = this.pedidoRepository.createQueryBuilder('pedido');
@@ -93,7 +114,9 @@ export class DashboardService {
     const calculateDaysRemaining = (dataPrevista: string) => {
       if (!dataPrevista) return null;
       const today = new Date();
-      const prevista = new Date(dataPrevista);
+      const prevista = this.parseDate(dataPrevista);
+      if (!prevista) return null;
+      
       const diffTime = prevista.getTime() - today.getTime();
       return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
     };
@@ -106,7 +129,7 @@ export class DashboardService {
       if (diasRestantes === null) return 'on-time';
       
       if (diasRestantes < 0) return 'late';
-      if (diasRestantes <= 2) return 'risk';
+      if (diasRestantes <= 1) return 'risk';
       return 'on-time';
     };
 
@@ -126,12 +149,27 @@ export class DashboardService {
           else if (status === 'delivered') statusDisplay = 'Entregue';
           else if (status === 'cancelled') statusDisplay = 'Cancelado';
           
+          // Formatar data prevista corretamente
+          let deadlineFormatted = 'Sem prazo';
+          if (pedido.data_prevista) {
+            // Se já está no formato DD/MM/YYYY, manter
+            if (pedido.data_prevista.includes('/') && !pedido.data_prevista.startsWith('20')) {
+              deadlineFormatted = pedido.data_prevista;
+            } else if (pedido.data_prevista.includes('-')) {
+              // Se está no formato YYYY-MM-DD, converter para DD/MM/YYYY
+              const [year, month, day] = pedido.data_prevista.split('-');
+              deadlineFormatted = `${day}/${month}/${year}`;
+            } else {
+              deadlineFormatted = pedido.data_prevista;
+            }
+          }
+          
           return {
             id: pedido.id,
             name: `Pedido #${pedido.numero} - ${pedido.nome_cliente}`,
             status: statusDisplay,
             situacao: pedido.situacao,
-            deadline: pedido.data_prevista ? new Date(pedido.data_prevista).toLocaleDateString('pt-BR') : 'Sem prazo',
+            deadline: deadlineFormatted,
             diasRestantes: diasRestantes,
             valor: pedido.valor_total || 0
           };
@@ -224,13 +262,16 @@ export class DashboardService {
     const lastWeekRevenue = lastWeekOrders.reduce((sum, order) => sum + (order.valor_total || 0), 0);
     const lastMonthRevenue = lastMonthOrders.reduce((sum, order) => sum + (order.valor_total || 0), 0);
 
+    // Buscar metas do banco de dados
+    const goals = await this.salesGoalsService.getCurrentGoals();
+
     return {
       success: true,
       data: {
         daily: {
           current: dailyRevenue,
           previous: yesterdayRevenue,
-          goal: 1000,
+          goal: goals.daily_goal,
           orders: dailyOrders.length,
           period: todayStr,
           growth: yesterdayRevenue > 0 ? ((dailyRevenue - yesterdayRevenue) / yesterdayRevenue) * 100 : 0
@@ -238,7 +279,7 @@ export class DashboardService {
         weekly: {
           current: weeklyRevenue,
           previous: lastWeekRevenue,
-          goal: 7000,
+          goal: goals.weekly_goal,
           orders: weeklyOrders.length,
           period: `${formatDate(weekAgo)} - ${todayStr}`,
           growth: lastWeekRevenue > 0 ? ((weeklyRevenue - lastWeekRevenue) / lastWeekRevenue) * 100 : 0
@@ -246,7 +287,7 @@ export class DashboardService {
         monthly: {
           current: monthlyRevenue,
           previous: lastMonthRevenue,
-          goal: 30000,
+          goal: goals.monthly_goal,
           orders: monthlyOrders.length,
           period: `${formatDate(startOfMonth)} - ${todayStr}`,
           growth: lastMonthRevenue > 0 ? ((monthlyRevenue - lastMonthRevenue) / lastMonthRevenue) * 100 : 0
@@ -335,23 +376,28 @@ export class DashboardService {
     const alerts45Days: Alert45Days[] = [];
 
     const processedOrders = afterSalesOrders.map(order => {
-      const diasRestantes = order.data_prevista ? 
-        Math.ceil((new Date(order.data_prevista).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)) : 
-        undefined;
+      let diasRestantes: number | undefined = undefined;
+      if (order.data_prevista) {
+        const parsedDate = this.parseDate(order.data_prevista);
+        if (parsedDate) {
+          diasRestantes = Math.ceil((parsedDate.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
+        }
+      }
 
       let status = 'processing';
       if (order.situacao === 'Entregue') status = 'delivered';
       else if (order.situacao === 'Não Entregue') status = 'not-delivered';
       else if (order.situacao === 'Enviado') status = 'shipped';
       else if (diasRestantes !== undefined) {
-        if (diasRestantes <= 2) status = 'late';
+        if (diasRestantes <= 1) status = 'late';
         else if (diasRestantes <= 5) status = 'risk';
         else status = 'on-time';
       }
 
       // Verificar alertas de 15 dias
       if (order.data_prevista) {
-        const promisedDate = new Date(order.data_prevista);
+        const promisedDate = this.parseDate(order.data_prevista);
+        if (!promisedDate) return { ...order, status: 'processing', diasRestantes: undefined };
         const followUp15Date = new Date(promisedDate.getTime() + 15 * 24 * 60 * 60 * 1000);
         const followUp45Date = new Date(promisedDate.getTime() + 45 * 24 * 60 * 60 * 1000);
         
@@ -393,9 +439,9 @@ export class DashboardService {
         ...order,
         status,
         diasRestantes,
-        willBeLate: diasRestantes !== undefined && diasRestantes <= 2 && diasRestantes >= 0,
-        deliveryDate: order.situacao === 'Entregue' ? new Date(order.data_prevista) : null,
-        promisedDate: order.data_prevista ? new Date(order.data_prevista) : null,
+        willBeLate: diasRestantes !== undefined && diasRestantes <= 1 && diasRestantes >= 0,
+        deliveryDate: order.situacao === 'Entregue' ? this.parseDate(order.data_prevista) : null,
+        promisedDate: order.data_prevista ? this.parseDate(order.data_prevista) : null,
         order_id: order.numero || order.id,
         customer: order.nome_cliente,
         items: Array.isArray(order.itens_json) ? order.itens_json.map((item, index) => ({

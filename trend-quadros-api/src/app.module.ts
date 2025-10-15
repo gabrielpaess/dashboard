@@ -7,6 +7,7 @@ import { AuthModule } from './modules/auth/auth.module';
 import { OrdersModule } from './modules/orders/orders.module';
 import { SyncModule } from './modules/sync/sync.module';
 import { DashboardModule } from './modules/dashboard/dashboard.module';
+import { SalesGoalsModule } from './modules/sales-goals/sales-goals.module';
 
 @Module({
   imports: [
@@ -24,6 +25,7 @@ import { DashboardModule } from './modules/dashboard/dashboard.module';
     OrdersModule,
     SyncModule,
     DashboardModule,
+    SalesGoalsModule,
   ],
 })
 export class AppModule {}

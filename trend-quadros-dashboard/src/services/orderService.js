@@ -43,8 +43,8 @@ class OrderService {
       return 'unknown';
     } else if (diasRestantes < 0) {
       return 'late'; // Atrasado (dias negativos)
-    } else if (diasRestantes <= 2) {
-      return 'late'; // Atrasado (<=2 dias restantes)
+    } else if (diasRestantes <= 1) {
+      return 'late'; // Atrasado (<=1 dias restantes)
     } else if (diasRestantes <= 5) {
       return 'risk'; // Em risco (<=5 dias restantes)
     } else {
@@ -527,7 +527,7 @@ class OrderService {
       } else if (pedido.situacao === 'Enviado') {
         status = 'shipped';
         // Se enviado mas próximo do prazo, considerar atrasado
-        if (diasRestantes !== null && diasRestantes <= 2) {
+        if (diasRestantes !== null && diasRestantes <= 1) {
           status = 'late';
           willBeLate = true;
           riskReason = 'Enviado mas atrasado';
@@ -539,7 +539,7 @@ class OrderService {
       } else if (pedido.situacao === 'Faturado') {
         status = 'invoiced';
         // Se faturado mas próximo do prazo, considerar em risco
-        if (diasRestantes !== null && diasRestantes <= 2) {
+        if (diasRestantes !== null && diasRestantes <= 1) {
           status = 'late';
           willBeLate = true;
           riskReason = 'Faturado mas atrasado';
@@ -550,7 +550,7 @@ class OrderService {
         }
       } else if (pedido.situacao === 'Preparando envio' || pedido.situacao === 'Pronto para envio') {
         // Lógica inteligente baseada em dias restantes
-        if (diasRestantes !== null && diasRestantes <= 2) {
+        if (diasRestantes !== null && diasRestantes <= 1) {
           status = 'late';
           willBeLate = true;
           riskReason = 'Atrasado na preparação';
@@ -563,7 +563,7 @@ class OrderService {
         }
       } else if (pedido.situacao === 'Em aberto') {
         // Lógica inteligente para pedidos em aberto
-        if (diasRestantes !== null && diasRestantes <= 2) {
+        if (diasRestantes !== null && diasRestantes <= 1) {
           status = 'late';
           willBeLate = true;
           riskReason = 'Atrasado - ainda em aberto';
@@ -576,7 +576,7 @@ class OrderService {
         }
       } else if (pedido.situacao === 'aprovado') {
         // Lógica para pedidos aprovados
-        if (diasRestantes !== null && diasRestantes <= 2) {
+        if (diasRestantes !== null && diasRestantes <= 1) {
           status = 'late';
           willBeLate = true;
           riskReason = 'Atrasado - aprovado mas não processado';
@@ -589,7 +589,7 @@ class OrderService {
         }
       } else {
         // Situação não mapeada - aplicar lógica de data
-        if (diasRestantes !== null && diasRestantes <= 2) {
+        if (diasRestantes !== null && diasRestantes <= 1) {
           status = 'late';
           willBeLate = true;
           riskReason = 'Atrasado na entrega';
@@ -621,7 +621,7 @@ class OrderService {
         // Informações extras para SLA
         diasRestantes,
         slaStatus: status,
-        slaPriority: diasRestantes === null ? 'low' : diasRestantes <= 2 ? 'critical' : diasRestantes <= 5 ? 'high' : diasRestantes <= 10 ? 'medium' : 'low',
+        slaPriority: diasRestantes === null ? 'low' : diasRestantes <= 1 ? 'critical' : diasRestantes <= 5 ? 'high' : diasRestantes <= 10 ? 'medium' : 'low',
         items: [{
           id: pedido.id + '-1',
           sku: pedido.numero_ecommerce || `PED-${pedido.numero}`,

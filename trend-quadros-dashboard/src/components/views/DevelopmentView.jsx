@@ -79,9 +79,9 @@ const DevelopmentView = ({
           </div>
           <div className="bg-indigo-500/20 rounded-lg p-4 border border-indigo-500/30 text-center">
             <Calendar className="w-8 h-8 mx-auto mb-2 text-indigo-300" />
-            <p className="text-3xl font-bold text-white">{(projects || []).filter(p => p.diasRestantes !== undefined && p.diasRestantes <= 2).length}</p>
+            <p className="text-3xl font-bold text-white">{(projects || []).filter(p => p.diasRestantes !== undefined && p.diasRestantes <= 1).length}</p>
             <p className="text-sm text-indigo-300">Gargalos Identificados</p>
-            <p className="text-xs text-indigo-200">(≤2 dias de prazo)</p>
+            <p className="text-xs text-indigo-200">(≤1 dias de prazo)</p>
           </div>
         </div>
 
@@ -124,7 +124,7 @@ const DevelopmentView = ({
                     {project.diasRestantes !== undefined && (
                       <p className={`text-xs font-medium ${
                         project.diasRestantes <= 0 ? 'text-red-400' : 
-                        project.diasRestantes <= 2 ? 'text-yellow-400' : 
+                        project.diasRestantes <= 1 ? 'text-yellow-400' : 
                         'text-green-400'
                       }`}>
                         {project.diasRestantes <= 0 ? `${Math.abs(project.diasRestantes)} dias atrasado` : 

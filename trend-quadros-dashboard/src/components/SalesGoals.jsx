@@ -1,11 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Target, Edit, Save, X } from 'lucide-react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { useToast } from './ui/use-toast';
+import { nestjsApiClient } from '../services';
 
-const SalesGoals = ({ data }) => {
+const SalesGoals = ({ data, user }) => {
   const { toast } = useToast();
   
   // Validação de dados para evitar erros
@@ -23,22 +24,110 @@ const SalesGoals = ({ data }) => {
     weekly: data.weekly?.goal || 45000,
     monthly: data.monthly?.goal || 200000
   });
+  const [loading, setLoading] = useState(false);
 
-  const handleSaveGoals = () => {
-    // Aqui você salvaria as metas no localStorage ou enviaria para a API
-    localStorage.setItem('salesGoals', JSON.stringify(goals));
-    setIsEditing(false);
-    toast({
-      title: "✅ Metas atualizadas!",
-      description: "Suas metas de vendas foram salvas com sucesso."
+  // Verificar se o usuário é admin
+  const isAdmin = user?.nivel === 'admin';
+
+  // Sincronizar dados quando as props mudarem
+  useEffect(() => {
+    setGoals({
+      daily: data.daily?.goal || 7000,
+      weekly: data.weekly?.goal || 45000,
+      monthly: data.monthly?.goal || 200000
     });
+  }, [data]);
+
+  const handleSaveGoals = async () => {
+    console.log('🔍 Debug - Usuário:', user);
+    console.log('🔍 Debug - isAdmin:', isAdmin);
+    console.log('🔍 Debug - Autenticado:', nestjsApiClient.isAuthenticated());
+    
+    if (!isAdmin) {
+      toast({
+        title: "❌ Acesso negado",
+        description: "Apenas administradores podem alterar as metas.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Validar se os valores são números válidos
+    const dailyGoal = Number(goals.daily);
+    const weeklyGoal = Number(goals.weekly);
+    const monthlyGoal = Number(goals.monthly);
+
+    if (isNaN(dailyGoal) || isNaN(weeklyGoal) || isNaN(monthlyGoal)) {
+      toast({
+        title: "❌ Valores inválidos",
+        description: "Por favor, insira valores numéricos válidos para as metas.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (dailyGoal < 0 || weeklyGoal < 0 || monthlyGoal < 0) {
+      toast({
+        title: "❌ Valores inválidos",
+        description: "As metas não podem ser valores negativos.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setLoading(true);
+    try {
+      console.log('🔍 Debug - Valores originais:', goals);
+      console.log('🔍 Debug - Valores validados:', {
+        daily_goal: dailyGoal,
+        weekly_goal: weeklyGoal,
+        monthly_goal: monthlyGoal
+      });
+      console.log('🔍 Debug - Tipos dos valores:', {
+        daily_goal: typeof dailyGoal,
+        weekly_goal: typeof weeklyGoal,
+        monthly_goal: typeof monthlyGoal
+      });
+      
+      const response = await nestjsApiClient.post('/api/sales-goals', {
+        daily_goal: dailyGoal,
+        weekly_goal: weeklyGoal,
+        monthly_goal: monthlyGoal
+      });
+      
+      console.log('🔍 Debug - Resposta da API:', response);
+
+      if (response.success && response.data) {
+        setIsEditing(false);
+        toast({
+          title: "✅ Metas atualizadas!",
+          description: "Suas metas de vendas foram salvas com sucesso."
+        });
+        
+        // Recarregar a página após 1 segundo para mostrar os novos dados
+        setTimeout(() => {
+          window.location.reload();
+        }, 1000);
+      } else {
+        throw new Error(response.error || 'Falha ao salvar metas');
+      }
+    } catch (error) {
+      console.error('Erro ao salvar metas:', error);
+      toast({
+        title: "❌ Erro ao salvar",
+        description: error.message || "Erro ao salvar as metas. Tente novamente.",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleCancelEdit = () => {
     setGoals({
-      daily: data.daily.goal,
-      weekly: data.weekly.goal,
-      monthly: data.monthly.goal
+      daily: data.daily?.goal || 7000,
+      weekly: data.weekly?.goal || 45000,
+      monthly: data.monthly?.goal || 200000
     });
     setIsEditing(false);
   };
@@ -80,25 +169,44 @@ const SalesGoals = ({ data }) => {
           Gestão de Metas
         </h2>
         
-        <div className="flex space-x-2">
-          {isEditing ? (
-            <>
-              <Button variant="outline" size="sm" onClick={handleSaveGoals} className="text-green-400 border-green-400/50 hover:bg-green-400/10 hover:text-green-300 bg-transparent">
-                <Save className="w-4 h-4 mr-1" />
-                Salvar
+        {isAdmin && (
+          <div className="flex space-x-2">
+            {isEditing ? (
+              <>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={handleSaveGoals} 
+                  disabled={loading}
+                  className="text-green-400 border-green-400/50 hover:bg-green-400/10 hover:text-green-300 bg-transparent"
+                >
+                  <Save className="w-4 h-4 mr-1" />
+                  {loading ? 'Salvando...' : 'Salvar'}
+                </Button>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={handleCancelEdit} 
+                  disabled={loading}
+                  className="text-red-400 border-red-400/50 hover:bg-red-400/10 hover:text-red-300 bg-transparent"
+                >
+                  <X className="w-4 h-4 mr-1" />
+                  Cancelar
+                </Button>
+              </>
+            ) : (
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => setIsEditing(true)} 
+                className="text-white border-white/20 hover:bg-white/10 hover:text-white bg-transparent"
+              >
+                <Edit className="w-4 h-4 mr-1" />
+                Editar Metas
               </Button>
-              <Button variant="outline" size="sm" onClick={handleCancelEdit} className="text-red-400 border-red-400/50 hover:bg-red-400/10 hover:text-red-300 bg-transparent">
-                <X className="w-4 h-4 mr-1" />
-                Cancelar
-              </Button>
-            </>
-          ) : (
-            <Button variant="outline" size="sm" onClick={() => setIsEditing(true)} className="text-white border-white/20 hover:bg-white/10 hover:text-white bg-transparent">
-              <Edit className="w-4 h-4 mr-1" />
-              Editar Metas
-            </Button>
-          )}
-        </div>
+            )}
+          </div>
+        )}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -110,12 +218,14 @@ const SalesGoals = ({ data }) => {
             <Input
               type="number"
               value={goals.daily}
-              onChange={(e) => setGoals({...goals, daily: Number(e.target.value)})}
+              onChange={(e) => setGoals({...goals, daily: e.target.value})}
               className="mb-3 bg-white/10 border-white/20 text-white"
               placeholder="Meta diária"
+              min="0"
+              step="0.01"
             />
           ) : (
-            <p className="text-2xl font-bold text-white mb-3">{formatCurrency(goals.daily)}</p>
+            <p className="text-2xl font-bold text-white mb-3">{formatCurrency(data.daily.goal)}</p>
           )}
           
           <div className="space-y-2">
@@ -126,13 +236,13 @@ const SalesGoals = ({ data }) => {
             <div className="w-full bg-gray-700 rounded-full h-2">
               <motion.div
                 initial={{ width: 0 }}
-                animate={{ width: `${calculateProgress(data.daily.current, goals.daily)}%` }}
+                animate={{ width: `${calculateProgress(data.daily.current, data.daily.goal)}%` }}
                 transition={{ duration: 1 }}
                 className="bg-gradient-to-r from-blue-500 to-purple-500 h-2 rounded-full"
               />
             </div>
             <p className="text-xs text-gray-400">
-              {calculateProgress(data.daily.current, goals.daily).toFixed(1)}% atingido
+              {calculateProgress(data.daily.current, data.daily.goal).toFixed(1)}% atingido
             </p>
           </div>
         </div>
@@ -145,12 +255,14 @@ const SalesGoals = ({ data }) => {
             <Input
               type="number"
               value={goals.weekly}
-              onChange={(e) => setGoals({...goals, weekly: Number(e.target.value)})}
+              onChange={(e) => setGoals({...goals, weekly: e.target.value})}
               className="mb-3 bg-white/10 border-white/20 text-white"
               placeholder="Meta semanal"
+              min="0"
+              step="0.01"
             />
           ) : (
-            <p className="text-2xl font-bold text-white mb-3">{formatCurrency(goals.weekly)}</p>
+            <p className="text-2xl font-bold text-white mb-3">{formatCurrency(data.weekly.goal)}</p>
           )}
           
           <div className="space-y-2">
@@ -161,13 +273,13 @@ const SalesGoals = ({ data }) => {
             <div className="w-full bg-gray-700 rounded-full h-2">
               <motion.div
                 initial={{ width: 0 }}
-                animate={{ width: `${calculateProgress(data.weekly.current, goals.weekly)}%` }}
+                animate={{ width: `${calculateProgress(data.weekly.current, data.weekly.goal)}%` }}
                 transition={{ duration: 1, delay: 0.2 }}
                 className="bg-gradient-to-r from-green-500 to-teal-500 h-2 rounded-full"
               />
             </div>
             <p className="text-xs text-gray-400">
-              {calculateProgress(data.weekly.current, goals.weekly).toFixed(1)}% atingido
+              {calculateProgress(data.weekly.current, data.weekly.goal).toFixed(1)}% atingido
             </p>
           </div>
         </div>
@@ -180,12 +292,14 @@ const SalesGoals = ({ data }) => {
             <Input
               type="number"
               value={goals.monthly}
-              onChange={(e) => setGoals({...goals, monthly: Number(e.target.value)})}
+              onChange={(e) => setGoals({...goals, monthly: e.target.value})}
               className="mb-3 bg-white/10 border-white/20 text-white"
               placeholder="Meta mensal"
+              min="0"
+              step="0.01"
             />
           ) : (
-            <p className="text-2xl font-bold text-white mb-3">{formatCurrency(goals.monthly)}</p>
+            <p className="text-2xl font-bold text-white mb-3">{formatCurrency(data.monthly.goal)}</p>
           )}
           
           <div className="space-y-2">
@@ -196,13 +310,13 @@ const SalesGoals = ({ data }) => {
             <div className="w-full bg-gray-700 rounded-full h-2">
               <motion.div
                 initial={{ width: 0 }}
-                animate={{ width: `${calculateProgress(data.monthly.current, goals.monthly)}%` }}
+                animate={{ width: `${calculateProgress(data.monthly.current, data.monthly.goal)}%` }}
                 transition={{ duration: 1, delay: 0.4 }}
                 className="bg-gradient-to-r from-orange-500 to-red-500 h-2 rounded-full"
               />
             </div>
             <p className="text-xs text-gray-400">
-              {calculateProgress(data.monthly.current, goals.monthly).toFixed(1)}% atingido
+              {calculateProgress(data.monthly.current, data.monthly.goal).toFixed(1)}% atingido
             </p>
           </div>
         </div>

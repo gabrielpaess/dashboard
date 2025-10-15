@@ -2,9 +2,27 @@ import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { AppModule } from './app.module';
+import * as fs from 'fs';
+import * as https from 'https';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  let app;
+  
+  // Verificar se certificados SSL existem
+  const sslCertPath = process.env.SSL_CERT_PATH || '/etc/ssl/trend-quadros/fullchain.pem';
+  const sslKeyPath = process.env.SSL_KEY_PATH || '/etc/ssl/trend-quadros/privkey.pem';
+  
+  if (fs.existsSync(sslCertPath) && fs.existsSync(sslKeyPath)) {
+    console.log('🔐 Iniciando servidor com HTTPS...');
+    const httpsOptions = {
+      key: fs.readFileSync(sslKeyPath),
+      cert: fs.readFileSync(sslCertPath),
+    };
+    app = await NestFactory.create(AppModule, { httpsOptions });
+  } else {
+    console.log('⚠️ Certificados SSL não encontrados, iniciando com HTTP...');
+    app = await NestFactory.create(AppModule);
+  }
 
   // Global validation pipe
   app.useGlobalPipes(new ValidationPipe({
@@ -68,10 +86,19 @@ async function bootstrap() {
   const port = process.env.PORT || 3001;
   await app.listen(port);
   
-  console.log(`🚀 Server running on port ${port}`);
-  console.log(`📊 Health check: http://localhost:${port}/health`);
-  console.log(`📚 API Documentation: http://localhost:${port}/api/docs`);
+  const protocol = fs.existsSync(sslCertPath) && fs.existsSync(sslKeyPath) ? 'https' : 'http';
+  const host = process.env.HOST || '0.0.0.0';
+  
+  console.log(`🚀 Server running on ${protocol}://${host}:${port}`);
+  console.log(`📊 Health check: ${protocol}://${host}:${port}/health`);
+  console.log(`📚 API Documentation: ${protocol}://${host}:${port}/api/docs`);
   console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
+  
+  if (protocol === 'https') {
+    console.log('🔐 HTTPS habilitado com certificados SSL');
+  } else {
+    console.log('⚠️ HTTP ativo - configure HTTPS para produção');
+  }
 }
 
 bootstrap();

@@ -14,6 +14,7 @@ import ProtectedRoute from './ProtectedRoute';
 import { Eye, Wrench, DollarSign, Package, Bell } from 'lucide-react';
 import DateFilter from './DateFilter';
 import { nestjsApiClient, nestjsDashboardService, validateApiConnection } from '../services';
+import { authService } from '../services/authServiceSimple.js';
 import { DateFormatter } from '../services/utils/DateFormatter.js';
 
 const Dashboard = ({ 
@@ -304,8 +305,8 @@ const Dashboard = ({
     // Determinar status baseado na data conforme especificações:
     // data_prevista > 5: no prazo
     // data_prevista <= 5: em risco  
-    // data_prevista <= 2: atrasado
-    if (diffDays <= 2) {
+    // data_prevista <= 1: atrasado
+    if (diffDays <= 1) {
       return 'late'; // Atrasado
     } else if (diffDays <= 5) {
       return 'risk'; // Em risco
@@ -321,10 +322,17 @@ const Dashboard = ({
     
     // Usar DateFormatter para parsear corretamente a data
     let dataPrev;
-    if (typeof dataPrevista === 'string' && dataPrevista.includes('/') && !dataPrevista.startsWith('20')) {
-      // Se está no formato DD/MM/YYYY, parsear corretamente
-      const [day, month, year] = dataPrevista.split('/');
-      dataPrev = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+    if (typeof dataPrevista === 'string' && dataPrevista.includes('/') && !dataPrevista.includes('-')) {
+      // Verificar se é DD/MM/YYYY (não YYYY/MM/DD)
+      const parts = dataPrevista.split('/');
+      if (parts[0].length === 2 && parts[2].length === 4) {
+        // Se está no formato DD/MM/YYYY, parsear corretamente
+        const [day, month, year] = dataPrevista.split('/');
+        dataPrev = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+      } else {
+        // Para outros formatos, usar parseDate do DateFormatter
+        dataPrev = DateFormatter.parseDate(dataPrevista);
+      }
     } else {
       // Para outros formatos, usar parseDate do DateFormatter
       dataPrev = DateFormatter.parseDate(dataPrevista);
@@ -375,25 +383,49 @@ const Dashboard = ({
       // Usuário autenticado - buscar dados completos
       console.log('🔐 Usuário autenticado, buscando dados completos...');
       
-      // Buscar pedidos (requer autenticação)
-      const response = await nestjsApiClient.request('/api/orders', {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
+      // Buscar pedidos e metas em paralelo
+      const [ordersResponse, goalsResponse] = await Promise.all([
+        nestjsApiClient.request('/api/orders', {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        }),
+        nestjsApiClient.request('/api/sales-goals', {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        })
+      ]);
       
-      console.log('🔍 Dashboard - Resposta da API NestJS:', response);
+      console.log('🔍 Dashboard - Resposta da API NestJS (Pedidos):', ordersResponse);
+      console.log('🔍 Dashboard - Resposta da API NestJS (Metas):', goalsResponse);
       
-      if (!response.success) {
-        if (response.isConnectivityError) {
+      if (!ordersResponse.success) {
+        if (ordersResponse.isConnectivityError) {
           throw new Error('Erro de conectividade: Verifique se a API está rodando e acessível');
         }
-        throw new Error(`Falha ao buscar dados da API: ${response.error}`);
+        throw new Error(`Falha ao buscar dados da API: ${ordersResponse.error}`);
+      }
+
+      // Processar dados das metas
+      let salesGoals = null;
+      if (goalsResponse.success && goalsResponse.data) {
+        salesGoals = goalsResponse.data;
+        console.log('✅ Metas obtidas da API:', salesGoals);
+      } else {
+        console.warn('⚠️ Não foi possível obter metas da API, usando valores padrão');
+        // Usar valores padrão se não conseguir buscar as metas
+        salesGoals = {
+          daily_goal: 1000,
+          weekly_goal: 7000,
+          monthly_goal: 30000
+        };
       }
       
       // Processar dados para o formato esperado pelo dashboard
-      let pedidos = response.data || [];
+      let pedidos = ordersResponse.data || [];
       
       // Aplicar filtros de data se necessário
       if (useFilter && appliedStartDate && appliedEndDate) {
@@ -414,7 +446,7 @@ const Dashboard = ({
       const today = new Date();
       
       // Para as metas, usar todos os pedidos (sem filtros de data)
-      const allPedidos = response.data || [];
+      const allPedidos = ordersResponse.data || [];
 
       const formatDate = (date) => {
         // Converter Date para formato DD/MM/YYYY
@@ -693,21 +725,21 @@ const Dashboard = ({
           daily: {
             current: dailyRevenue,
             previous: 0, // Seria calculado com dados históricos
-            goal: 1000,
+            goal: salesGoals.daily_goal || 1000,
             orders: dailyOrders.length,
             period: todayStr
           },
           weekly: {
             current: weeklyRevenue,
             previous: 0, // Seria calculado com dados históricos
-            goal: 7000,
+            goal: salesGoals.weekly_goal || 7000,
             orders: weeklyOrders.length,
             period: `${formatDate(startOfWeek)} - ${formatDate(endOfWeek)}`
           },
           monthly: {
             current: monthlyRevenue,
             previous: 0, // Seria calculado com dados históricos
-            goal: 30000,
+            goal: salesGoals.monthly_goal || 30000,
             orders: monthlyOrders.length,
             period: `${formatDate(startOfMonth)} - ${formatDate(endOfMonthDisplay)}`
           }
@@ -774,9 +806,9 @@ const Dashboard = ({
             // Calcular status baseado na data prevista
             status: status,
             // Adicionar campos necessários para DeliveryStatus
-            willBeLate: diasRestantes !== undefined && diasRestantes <= 2 && diasRestantes >= 0,
-            deliveryDate: pedido.situacao === 'Entregue' ? DateFormatter.parseDate(pedido.data_prevista) : null,
-            promisedDate: pedido.data_prevista ? DateFormatter.parseDate(pedido.data_prevista) : null,
+            willBeLate: diasRestantes !== undefined && diasRestantes <= 1 && diasRestantes >= 0,
+            deliveryDate: pedido.situacao === 'Entregue' ? pedido.data_prevista : null,
+            promisedDate: pedido.data_prevista || null,
             // Adicionar campos para cálculo de dias
             diasRestantes: diasRestantes,
             // Mapear campos da API para formato esperado
@@ -1106,7 +1138,7 @@ const Dashboard = ({
             </TabsContent>
             <TabsContent value="sales">
               <ProtectedRoute requiredLevel="sales" user={user} isAuthenticated={isAuthenticated}>
-                <SalesView data={dashboardData} dateFilter={filterActive ? { startDate: appliedStartDate, endDate: appliedEndDate } : null} />
+                <SalesView data={dashboardData} dateFilter={filterActive ? { startDate: appliedStartDate, endDate: appliedEndDate } : null} user={user} />
               </ProtectedRoute>
             </TabsContent>
             <TabsContent value="production">

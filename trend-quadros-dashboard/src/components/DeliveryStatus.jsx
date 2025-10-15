@@ -14,7 +14,13 @@ const DeliveryStatus = ({ orders, detailed = false }) => {
   const formatDate = (date) => {
     if (!date) return 'Não informado';
     if (typeof date === 'string') return date;
-    if (date instanceof Date) return date.toLocaleDateString('pt-BR');
+    if (date instanceof Date) {
+      // Formatar manualmente para evitar problemas de fuso horário
+      const day = date.getDate().toString().padStart(2, '0');
+      const month = (date.getMonth() + 1).toString().padStart(2, '0');
+      const year = date.getFullYear();
+      return `${day}/${month}/${year}`;
+    }
     return 'Data inválida';
   };
   
@@ -231,7 +237,7 @@ const DeliveryStatus = ({ orders, detailed = false }) => {
                   {!order.deliveryDate && order.diasRestantes !== null && (
                     <div className="col-span-1 text-center">
                       <p className="text-xs text-gray-400">Dias</p>
-                      <p className={`text-sm font-medium ${order.diasRestantes < 0 ? 'text-red-400' : order.diasRestantes <= 2 ? 'text-yellow-400' : 'text-green-400'}`}>
+                      <p className={`text-sm font-medium ${order.diasRestantes < 0 ? 'text-red-400' : order.diasRestantes <= 1 ? 'text-yellow-400' : 'text-green-400'}`}>
                         {order.diasRestantes < 0 ? `${Math.abs(order.diasRestantes)}` : `${order.diasRestantes}`}
                       </p>
                     </div>
@@ -283,7 +289,7 @@ const DeliveryStatus = ({ orders, detailed = false }) => {
                     {!order.deliveryDate && order.diasRestantes !== null && (
                       <div className="col-span-2">
                         <p className="text-xs text-gray-400">Dias Restantes</p>
-                        <p className={`font-medium ${order.diasRestantes < 0 ? 'text-red-400' : order.diasRestantes <= 2 ? 'text-yellow-400' : 'text-green-400'}`}>
+                        <p className={`font-medium ${order.diasRestantes < 0 ? 'text-red-400' : order.diasRestantes <= 1 ? 'text-yellow-400' : 'text-green-400'}`}>
                           {order.diasRestantes < 0 ? `${Math.abs(order.diasRestantes)} atrasado` : `${order.diasRestantes} dias`}
                         </p>
                       </div>
