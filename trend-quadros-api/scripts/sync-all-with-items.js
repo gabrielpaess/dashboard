@@ -5,6 +5,7 @@
 const { Pool } = require('pg');
 const dotenv = require('dotenv');
 const axios = require('axios');
+const { getRollingTwoMonthTinyDateRange } = require('./tiny-date-range');
 
 // Load environment variables
 dotenv.config();
@@ -26,11 +27,12 @@ async function delay(ms) {
 }
 
 async function fetchOrdersFromTiny(options = {}) {
+  const range = getRollingTwoMonthTinyDateRange();
   const params = new URLSearchParams({
     token: TINY_API_TOKEN,
     formato: 'json',
-    dataInicial: '01/01/2024',
-    dataFinal: '31/12/2025',
+    dataInicial: range.dataInicial,
+    dataFinal: range.dataFinal,
     registrosPorPagina: '1000',
     ...options
   });

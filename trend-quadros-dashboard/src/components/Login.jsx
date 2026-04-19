@@ -1,10 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Eye, EyeOff, Lock, Mail, User, AlertCircle, CheckCircle } from 'lucide-react';
+import { Eye, EyeOff, Lock, Mail, User, AlertCircle, CheckCircle, ChevronDown } from 'lucide-react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 import { nestjsApiClient } from '../services';
+import { cn } from '../lib/utils';
+
+const inputBaseClass =
+  'h-11 w-full rounded-lg border border-white/15 !bg-slate-950/45 pl-11 text-[15px] text-white shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05)] placeholder:text-slate-400 focus-visible:border-violet-400/70 focus-visible:ring-2 focus-visible:ring-violet-500/25 focus-visible:ring-offset-0 focus-visible:ring-offset-transparent disabled:opacity-50';
 
 const Login = ({ onLoginSuccess }) => {
   const [email, setEmail] = useState('');
@@ -14,7 +17,6 @@ const Login = ({ onLoginSuccess }) => {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
-  // Limpar mensagens quando campos mudam
   useEffect(() => {
     if (error || success) {
       setError('');
@@ -24,21 +26,18 @@ const Login = ({ onLoginSuccess }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
-    // Validações básicas
+
     if (!email || !password) {
       setError('Por favor, preencha todos os campos');
       return;
     }
 
-    // Validação de email
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
       setError('Por favor, insira um email válido');
       return;
     }
 
-    // Validação de senha
     if (password.length < 6) {
       setError('A senha deve ter pelo menos 6 caracteres');
       return;
@@ -49,20 +48,16 @@ const Login = ({ onLoginSuccess }) => {
     setSuccess('');
 
     try {
-      console.log('🔐 Tentando fazer login...');
       const result = await nestjsApiClient.login(email, password);
-      
+
       if (result.success) {
         setSuccess('Login realizado com sucesso! Redirecionando...');
-        console.log('✅ Login bem-sucedido');
         setTimeout(() => {
           onLoginSuccess(result.data.user);
         }, 1500);
       } else {
-        // Tratar diferentes tipos de erro
         let errorMessage = result.error || 'Erro desconhecido';
-        
-        // Melhorar mensagens de erro específicas
+
         if (errorMessage.includes('Email ou senha inválidos')) {
           errorMessage = 'Email ou senha incorretos. Verifique suas credenciais.';
         } else if (errorMessage.includes('email must be an email')) {
@@ -72,16 +67,12 @@ const Login = ({ onLoginSuccess }) => {
         } else if (errorMessage.includes('Erro de conectividade')) {
           errorMessage = 'Erro de conexão. Verifique sua internet e tente novamente.';
         }
-        
+
         setError(errorMessage);
-        console.error('❌ Erro no login:', result.error);
       }
     } catch (error) {
-      console.error('❌ Erro durante login:', error);
-      
-      // Tratar diferentes tipos de erro no catch
       let errorMessage = 'Erro interno do servidor';
-      
+
       if (error.message.includes('Email ou senha inválidos')) {
         errorMessage = 'Email ou senha incorretos. Verifique suas credenciais.';
       } else if (error.message.includes('email must be an email')) {
@@ -93,7 +84,7 @@ const Login = ({ onLoginSuccess }) => {
       } else if (error.message.includes('Failed to fetch')) {
         errorMessage = 'Não foi possível conectar ao servidor. Verifique sua internet.';
       }
-      
+
       setError(errorMessage);
     } finally {
       setLoading(false);
@@ -107,138 +98,163 @@ const Login = ({ onLoginSuccess }) => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-900 via-purple-900 to-violet-900 p-4">
+    <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-[#0f0820] via-[#1e1040] to-[#0c1224] px-4 py-10 sm:py-12">
       <motion.div
-        initial={{ opacity: 0, scale: 0.9 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ duration: 0.5 }}
-        className="w-full max-w-md"
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.45 }}
+        className="w-full max-w-[420px]"
       >
-        <Card className="glass-effect border-white/20">
-          <CardHeader className="text-center space-y-4">
-            <motion.div
-              initial={{ opacity: 0, y: -20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2 }}
-              className="mx-auto w-16 h-16 bg-gradient-to-r from-purple-500 to-blue-500 rounded-full flex items-center justify-center"
-            >
-              <User className="w-8 h-8 text-white" />
-            </motion.div>
-            
-            <div>
-              <CardTitle className="text-2xl font-bold text-white">
-                Dashboard Ponto Quadros
-              </CardTitle>
-              <CardDescription className="text-gray-300 mt-2">
-                Faça login para acessar o sistema
-              </CardDescription>
+        <header className="mb-8 text-center">
+          <h1 className="text-3xl sm:text-4xl font-bold tracking-tight text-white">
+            Ponto Quadros
+          </h1>
+          <p className="mt-2 text-sm sm:text-base text-slate-300/90">
+            Faça login para acessar o dashboard
+          </p>
+        </header>
+
+        <div
+          className={cn(
+            'rounded-2xl border border-white/15 p-6 sm:p-8',
+            'bg-white/[0.06] shadow-[0_8px_40px_-12px_rgba(0,0,0,0.5)] backdrop-blur-xl',
+          )}
+        >
+          <div className="mb-8 flex flex-col items-center text-center">
+            <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-violet-500 to-indigo-600 shadow-lg shadow-violet-900/40">
+              <User className="h-8 w-8 text-white" strokeWidth={2} />
             </div>
-          </CardHeader>
+            <h2 className="text-lg font-semibold text-white">Dashboard</h2>
+            <p className="mt-1 text-sm text-slate-400">Use suas credenciais corporativas</p>
+          </div>
 
-          <CardContent className="space-y-6">
-            <form onSubmit={handleSubmit} className="space-y-4">
-              {/* Campo Email */}
-              <div className="space-y-2">
-                <label htmlFor="email" className="text-sm font-medium text-gray-300">
-                  Email
-                </label>
-                <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                  <Input
-                    id="email"
-                    type="email"
-                    placeholder="seu@email.com"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    onKeyPress={handleKeyPress}
-                    className="pl-10 bg-white/10 border-white/20 text-white placeholder-gray-400 focus:border-purple-500 focus:ring-purple-500"
-                    disabled={loading}
-                    autoComplete="email"
-                  />
-                </div>
+          <form onSubmit={handleSubmit} className="space-y-5">
+            <div className="space-y-2">
+              <label htmlFor="email" className="text-sm font-medium text-slate-200">
+                Email
+              </label>
+              <div className="relative">
+                <Mail
+                  className="pointer-events-none absolute left-3.5 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-slate-400"
+                  aria-hidden
+                />
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="seu@email.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  onKeyPress={handleKeyPress}
+                  className={inputBaseClass}
+                  disabled={loading}
+                  autoComplete="email"
+                />
               </div>
+            </div>
 
-              {/* Campo Senha */}
-              <div className="space-y-2">
-                <label htmlFor="password" className="text-sm font-medium text-gray-300">
-                  Senha
-                </label>
-                <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                  <Input
-                    id="password"
-                    type={showPassword ? 'text' : 'password'}
-                    placeholder="Sua senha"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    onKeyPress={handleKeyPress}
-                    className="pl-10 pr-10 bg-white/10 border-white/20 text-white placeholder-gray-400 focus:border-purple-500 focus:ring-purple-500"
-                    disabled={loading}
-                    autoComplete="current-password"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white transition-colors"
-                    disabled={loading}
-                  >
-                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                  </button>
-                </div>
+            <div className="space-y-2">
+              <label htmlFor="password" className="text-sm font-medium text-slate-200">
+                Senha
+              </label>
+              <div className="relative">
+                <Lock
+                  className="pointer-events-none absolute left-3.5 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-slate-400"
+                  aria-hidden
+                />
+                <Input
+                  id="password"
+                  type={showPassword ? 'text' : 'password'}
+                  placeholder="Digite sua senha"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  onKeyPress={handleKeyPress}
+                  className={cn(inputBaseClass, 'pr-11')}
+                  disabled={loading}
+                  autoComplete="current-password"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 rounded p-1 text-slate-400 transition hover:bg-white/10 hover:text-white"
+                  disabled={loading}
+                  aria-label={showPassword ? 'Ocultar senha' : 'Mostrar senha'}
+                >
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
               </div>
+            </div>
 
-              {/* Mensagens de Erro/Sucesso */}
-              {error && (
-                <motion.div
-                  initial={{ opacity: 0, y: -10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="flex items-center space-x-2 text-red-400 bg-red-500/20 border border-red-500/30 rounded-lg p-3"
-                >
-                  <AlertCircle className="w-4 h-4" />
-                  <span className="text-sm">{error}</span>
-                </motion.div>
-              )}
-
-              {success && (
-                <motion.div
-                  initial={{ opacity: 0, y: -10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="flex items-center space-x-2 text-green-400 bg-green-500/20 border border-green-500/30 rounded-lg p-3"
-                >
-                  <CheckCircle className="w-4 h-4" />
-                  <span className="text-sm">{success}</span>
-                </motion.div>
-              )}
-
-              {/* Botão de Login */}
-              <Button
-                type="submit"
-                disabled={loading}
-                className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white font-medium py-2.5 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+            {error && (
+              <motion.div
+                initial={{ opacity: 0, y: -6 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="flex items-start gap-2 rounded-lg border border-red-500/30 bg-red-950/40 px-3 py-2.5 text-sm text-red-200"
               >
-                {loading ? (
-                  <div className="flex items-center space-x-2">
-                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                    <span>Entrando...</span>
-                  </div>
-                ) : (
-                  'Entrar'
-                )}
-              </Button>
-            </form>
+                <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+                <span>{error}</span>
+              </motion.div>
+            )}
 
-            {/* Informações de Acesso */}
-            <div className="mt-6 p-4 bg-blue-500/10 border border-blue-500/20 rounded-lg">
-              <h4 className="text-sm font-medium text-blue-400 mb-2">Níveis de Acesso:</h4>
-              <div className="space-y-1 text-xs text-gray-300">
-                <div>👑 <strong>Admin:</strong> Acesso completo</div>
-                <div>💰 <strong>Vendas:</strong> Apenas aba Vendas</div>
-                <div>🔧 <strong>Desenvolvimento:</strong> Apenas aba Desenvolvimento</div>
-                <div>📦 <strong>Produção:</strong> Apenas aba Produção</div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+            {success && (
+              <motion.div
+                initial={{ opacity: 0, y: -6 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="flex items-start gap-2 rounded-lg border border-emerald-500/30 bg-emerald-950/35 px-3 py-2.5 text-sm text-emerald-200"
+              >
+                <CheckCircle className="mt-0.5 h-4 w-4 shrink-0" />
+                <span>{success}</span>
+              </motion.div>
+            )}
+
+            <Button
+              type="submit"
+              disabled={loading}
+              className="h-11 w-full rounded-lg bg-gradient-to-r from-indigo-600 to-violet-600 text-base font-semibold text-white shadow-lg shadow-indigo-950/50 transition hover:from-indigo-500 hover:to-violet-500 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {loading ? (
+                <span className="flex items-center justify-center gap-2">
+                  <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+                  Entrando...
+                </span>
+              ) : (
+                'Entrar'
+              )}
+            </Button>
+          </form>
+
+          <details className="group mt-6 rounded-xl border border-white/10 bg-black/25 px-4 py-3 text-left [&_summary::-webkit-details-marker]:hidden">
+            <summary className="flex cursor-pointer list-none items-center justify-between gap-2 text-sm font-medium text-slate-300 transition hover:text-white">
+              <span>Níveis de acesso</span>
+              <ChevronDown className="h-4 w-4 shrink-0 transition group-open:rotate-180" />
+            </summary>
+            <ul className="mt-3 space-y-2 border-t border-white/10 pt-3 text-xs leading-relaxed text-slate-400 sm:text-sm">
+              <li className="flex gap-2">
+                <span aria-hidden>👑</span>
+                <span>
+                  <strong className="text-slate-200">Admin</strong> — acesso completo
+                </span>
+              </li>
+              <li className="flex gap-2">
+                <span aria-hidden>📈</span>
+                <span>
+                  <strong className="text-slate-200">Vendas</strong> — apenas aba Vendas
+                </span>
+              </li>
+              <li className="flex gap-2">
+                <span aria-hidden>🛠️</span>
+                <span>
+                  <strong className="text-slate-200">Desenvolvimento</strong> — apenas aba Desenvolvimento
+                </span>
+              </li>
+              <li className="flex gap-2">
+                <span aria-hidden>📦</span>
+                <span>
+                  <strong className="text-slate-200">Produção</strong> — apenas aba Produção
+                </span>
+              </li>
+            </ul>
+          </details>
+        </div>
       </motion.div>
     </div>
   );

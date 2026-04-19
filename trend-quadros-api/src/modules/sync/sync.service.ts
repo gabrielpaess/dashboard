@@ -109,12 +109,9 @@ export class SyncService {
     const startTime = Date.now();
 
     try {
-      this.logger.log('Iniciando sincronização incremental');
-
-      const sinceDate = options.since || this.lastSync?.timestamp;
-      if (sinceDate) {
-        options.dataInicial = this.formatDateForAPI(new Date(sinceDate));
-      }
+      this.logger.log(
+        'Iniciando sincronização incremental (janela Tiny: 2 meses até hoje)',
+      );
 
       const orders = await this.tinyApiService.fetchRecentOrders();
       this.logger.log(`Encontrados ${orders.length} pedidos recentes`);
@@ -400,13 +397,6 @@ export class SyncService {
       this.logger.error('Erro ao formatar data para PT-BR:', dateString, error);
       return null;
     }
-  }
-
-  private formatDateForAPI(date: Date): string {
-    const day = date.getDate().toString().padStart(2, '0');
-    const month = (date.getMonth() + 1).toString().padStart(2, '0');
-    const year = date.getFullYear();
-    return `${day}/${month}/${year}`;
   }
 
   private calculateEnvio15(dataPedido: string, dataPrevista: string): boolean {

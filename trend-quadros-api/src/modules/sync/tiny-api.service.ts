@@ -19,6 +19,27 @@ export class TinyApiService {
     return this.configService.get<string>('TINY_API_TOKEN') || '';
   }
 
+  /** Formato DD/MM/YYYY exigido pela API Tiny. */
+  private formatDateToTiny(date: Date): string {
+    const day = date.getDate().toString().padStart(2, '0');
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    const year = date.getFullYear();
+    return `${day}/${month}/${year}`;
+  }
+
+  /**
+   * Janela rolante de sincronização: dois meses atrás até hoje (regra de negócio).
+   */
+  private getRollingTwoMonthTinyDateRange(): { dataInicial: string; dataFinal: string } {
+    const dataFinal = new Date();
+    const dataInicial = new Date();
+    dataInicial.setMonth(dataInicial.getMonth() - 2);
+    return {
+      dataInicial: this.formatDateToTiny(dataInicial),
+      dataFinal: this.formatDateToTiny(dataFinal),
+    };
+  }
+
   async fetchOrders(options: any = {}) {
     return this.rateLimiter.executeWithRetry(async () => {
       const url = new URL(this.ordersUrl);
@@ -102,20 +123,11 @@ export class TinyApiService {
   }
 
   async fetchRecentOrders() {
-    const thirtyDaysAgo = new Date();
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-    
-    const formatDateToTiny = (date: Date) => {
-      const day = date.getDate().toString().padStart(2, '0');
-      const month = (date.getMonth() + 1).toString().padStart(2, '0');
-      const year = date.getFullYear();
-      return `${day}/${month}/${year}`;
-    };
-    
+    const range = this.getRollingTwoMonthTinyDateRange();
     const options = {
-      dataInicial: formatDateToTiny(thirtyDaysAgo),
-      dataFinal: formatDateToTiny(new Date()),
-      registrosPorPagina: 1000
+      dataInicial: range.dataInicial,
+      dataFinal: range.dataFinal,
+      registrosPorPagina: 1000,
     };
 
     const response = await this.fetchOrders(options);
@@ -137,11 +149,12 @@ export class TinyApiService {
       this.logger.log('🔄 Starting paginated fetch of all orders...');
 
       while (hasMorePages) {
+        const range = this.getRollingTwoMonthTinyDateRange();
         const options = {
-          dataInicial: '01/01/2024', // Buscar desde 2024 para pegar todos os pedidos
-          dataFinal: '31/12/2025',
+          dataInicial: range.dataInicial,
+          dataFinal: range.dataFinal,
           registrosPorPagina: 100, // Usar 100 para evitar timeouts
-          pagina: currentPage
+          pagina: currentPage,
         };
 
         this.logger.log(`📄 Fetching page ${currentPage}...`);

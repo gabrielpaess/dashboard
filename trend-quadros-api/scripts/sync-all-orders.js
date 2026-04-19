@@ -1,5 +1,6 @@
 const { Client } = require('pg');
 const axios = require('axios');
+const { getRollingTwoMonthTinyDateRange } = require('./tiny-date-range');
 
 const DB_CONFIG = {
   host: process.env.DB_HOST || 'localhost',
@@ -21,12 +22,13 @@ async function syncAllOrders() {
     await client.connect();
     
     console.log('📡 Buscando pedidos da Tiny API...');
+    const range = getRollingTwoMonthTinyDateRange();
     const ordersResponse = await axios.get(TINY_API_URL, {
       params: {
         token: TINY_API_TOKEN,
         formato: 'json',
-        dataInicial: '01/01/2025',
-        dataFinal: '31/12/2025',
+        dataInicial: range.dataInicial,
+        dataFinal: range.dataFinal,
         registrosPorPagina: 1000
       }
     });

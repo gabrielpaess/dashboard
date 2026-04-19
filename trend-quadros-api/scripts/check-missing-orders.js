@@ -1,5 +1,6 @@
 const { Pool } = require('pg');
 const axios = require('axios');
+const { getRollingTwoMonthTinyDateRange } = require('./tiny-date-range');
 require('dotenv').config();
 
 const pool = new Pool({
@@ -74,11 +75,12 @@ async function fetchAllOrdersWithPagination() {
   let hasMorePages = true;
 
   while (hasMorePages) {
+    const range = getRollingTwoMonthTinyDateRange();
     const params = new URLSearchParams({
       token: TINY_API_TOKEN,
       formato: 'json',
-      dataInicial: '01/01/2024',
-      dataFinal: '31/12/2025',
+      dataInicial: range.dataInicial,
+      dataFinal: range.dataFinal,
       registrosPorPagina: '100',
       pagina: currentPage.toString()
     });
