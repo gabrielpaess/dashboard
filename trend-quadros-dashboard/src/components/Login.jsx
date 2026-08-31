@@ -7,7 +7,7 @@ import { nestjsApiClient } from '../services';
 import { cn } from '../lib/utils';
 
 const inputBaseClass =
-  'h-11 w-full rounded-lg border border-white/15 !bg-slate-950/45 pl-11 text-[15px] text-white shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05)] placeholder:text-slate-400 focus-visible:border-violet-400/70 focus-visible:ring-2 focus-visible:ring-violet-500/25 focus-visible:ring-offset-0 focus-visible:ring-offset-transparent disabled:opacity-50';
+  'h-11 w-full rounded-lg border border-white/15 !bg-slate-950/45 pl-11 text-[15px] text-white shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05)] placeholder:text-slate-400 focus-visible:border-blue-400/70 focus-visible:ring-2 focus-visible:ring-blue-500/20 focus-visible:ring-offset-0 focus-visible:ring-offset-transparent disabled:opacity-50';
 
 const Login = ({ onLoginSuccess }) => {
   const [email, setEmail] = useState('');
@@ -98,7 +98,7 @@ const Login = ({ onLoginSuccess }) => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-[#0f0820] via-[#1e1040] to-[#0c1224] px-4 py-10 sm:py-12">
+    <div className="min-h-screen flex flex-col items-center justify-center bg-[#0b0e14] px-4 py-10 sm:py-12">
       <motion.div
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
@@ -107,7 +107,7 @@ const Login = ({ onLoginSuccess }) => {
       >
         <header className="mb-8 text-center">
           <h1 className="text-3xl sm:text-4xl font-bold tracking-tight text-white">
-            Ponto Quadros
+            Ponto Analytics
           </h1>
           <p className="mt-2 text-sm sm:text-base text-slate-300/90">
             Faça login para acessar o dashboard
@@ -121,7 +121,7 @@ const Login = ({ onLoginSuccess }) => {
           )}
         >
           <div className="mb-8 flex flex-col items-center text-center">
-            <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-violet-500 to-indigo-600 shadow-lg shadow-violet-900/40">
+            <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-[#2f80ed] to-[#56ccf2] shadow-lg shadow-blue-950/30">
               <User className="h-8 w-8 text-white" strokeWidth={2} />
             </div>
             <h2 className="text-lg font-semibold text-white">Dashboard</h2>
@@ -209,7 +209,7 @@ const Login = ({ onLoginSuccess }) => {
             <Button
               type="submit"
               disabled={loading}
-              className="h-11 w-full rounded-lg bg-gradient-to-r from-indigo-600 to-violet-600 text-base font-semibold text-white shadow-lg shadow-indigo-950/50 transition hover:from-indigo-500 hover:to-violet-500 disabled:cursor-not-allowed disabled:opacity-50"
+              className="h-11 w-full rounded-lg bg-gradient-to-r from-[#2f80ed] to-[#56ccf2] text-base font-semibold text-white shadow-lg shadow-blue-950/30 transition hover:from-blue-500 hover:to-cyan-400 disabled:cursor-not-allowed disabled:opacity-50"
             >
               {loading ? (
                 <span className="flex items-center justify-center gap-2">

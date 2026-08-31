@@ -84,7 +84,7 @@ function App() {
 
   // Configurar título da página
   useEffect(() => {
-    document.title = 'Dashboard - Ponto Quadros';
+    document.title = 'Ponto Analytics';
   }, []);
 
   return (
@@ -102,12 +102,12 @@ function App() {
           </div>
         </div>
       ) : window.location.search.includes('test') ? (
-        <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-indigo-900 text-slate-50">
+        <div className="min-h-screen bg-[#0b0e14] text-slate-50">
           <NestjsDashboardTest />
           <Toaster />
         </div>
       ) : window.location.search.includes('connectivity') ? (
-        <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-indigo-900 text-slate-50 p-8">
+        <div className="min-h-screen bg-[#0b0e14] text-slate-50 p-8">
           <ApiConnectivityTest />
           <Toaster />
         </div>
@@ -117,7 +117,7 @@ function App() {
           <Toaster />
         </>
       ) : (
-        <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-indigo-900 text-slate-50">
+        <div className="min-h-screen bg-[#0b0e14] text-slate-50">
           <Dashboard 
             isAuthenticated={isAuthenticated}
             user={user}

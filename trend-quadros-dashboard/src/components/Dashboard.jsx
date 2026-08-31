@@ -2,7 +2,6 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { useToast } from './ui/use-toast';
-import Header from './Header';
 import OverviewView from './views/OverviewView';
 import DevelopmentView from './views/DevelopmentView';
 import SalesView from './views/SalesView';
@@ -11,7 +10,7 @@ import AfterSalesView from './views/AfterSalesView';
 import Login from './Login';
 import UserHeader from './UserHeader';
 import ProtectedRoute from './ProtectedRoute';
-import { Eye, Wrench, DollarSign, Package, Bell } from 'lucide-react';
+import { Eye, Wrench, DollarSign, Package, Bell, LayoutGrid, CalendarDays } from 'lucide-react';
 import DateFilter from './DateFilter';
 import { nestjsApiClient, nestjsDashboardService, validateApiConnection } from '../services';
 import { authService } from '../services/authServiceSimple.js';
@@ -1074,86 +1073,134 @@ const Dashboard = ({
     );
   }
 
+  const navigationItems = [
+    { value: 'overview', label: 'Visão Geral', icon: Eye, level: 'overview' },
+    { value: 'sales', label: 'Vendas', icon: DollarSign, level: 'sales' },
+    { value: 'development', label: 'Desenvolvimento', icon: Wrench, level: 'development' },
+    { value: 'production', label: 'Produção', icon: Package, level: 'production' },
+    { value: 'after-sales', label: 'Pós-venda', icon: Bell, level: 'after-sales' },
+  ].filter((item) => hasAccessToTab(item.level));
+
   return (
-    <div className="min-h-screen p-2 sm:p-4 lg:p-6">
-      <motion.div
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.8, ease: "easeOut" }}
-        className="max-w-screen-2xl mx-auto space-y-6"
-      >
-        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-          <Header 
-            lastUpdated={lastUpdated} 
-            onRefresh={fetchOrders}
-            refreshing={refreshing}
-          />
-          <UserHeader onLogout={handleLogout} />
+    <div className="pq-app-shell min-h-screen">
+      <div className="pq-topbar">
+        <div className="pq-brand">
+          <div className="pq-brand-mark"><LayoutGrid className="w-4 h-4" /></div>
+          <div>
+            <div className="pq-brand-name">Ponto Analytics</div>
+            <div className="pq-brand-subtitle">Central de gestão</div>
+          </div>
         </div>
 
-        <DateFilter
-          startDate={startDate}
-          endDate={endDate}
-          appliedStartDate={appliedStartDate}
-          appliedEndDate={appliedEndDate}
-          filterActive={filterActive}
-          onStartDateChange={handleStartDateChange}
-          onEndDateChange={handleEndDateChange}
-          onApplyFilter={handleApplyFilter}
-          onClearFilter={handleClearFilter}
-          loading={loading || refreshing}
-        />
+        <div className="pq-topbar-actions">
+          {lastUpdated && (
+            <div className="pq-sync-status hidden sm:flex">
+              <span className="pq-status-dot" />
+              Atualizado {lastUpdated.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+            </div>
+          )}
+          <UserHeader onLogout={handleLogout} />
+        </div>
+      </div>
 
-        <Tabs value={activeTab} onValueChange={(newValue) => {
-          setActiveTab(newValue);
-        }} className="w-full">
-          <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 glass-effect p-1 h-auto gap-1">
-            {hasAccessToTab('overview') && (
-              <TabsTrigger value="overview" className="text-white data-[state=active]:bg-teal-600/50 data-[state=active]:text-white flex items-center gap-1 sm:gap-2 text-xs sm:text-sm px-2 sm:px-3 py-2"><Eye className="w-3 h-3 sm:w-4 sm:h-4"/><span className="hidden sm:inline">Visão Geral</span><span className="sm:hidden">Geral</span></TabsTrigger>
-            )}
-            {hasAccessToTab('sales') && (
-              <TabsTrigger value="sales" className="text-white data-[state=active]:bg-green-600/50 data-[state=active]:text-white flex items-center gap-1 sm:gap-2 text-xs sm:text-sm px-2 sm:px-3 py-2"><DollarSign className="w-3 h-3 sm:w-4 sm:h-4"/><span className="hidden sm:inline">Vendas</span><span className="sm:hidden">Vendas</span></TabsTrigger>
-            )}
-            {hasAccessToTab('development') && (
-              <TabsTrigger value="development" className="text-white data-[state=active]:bg-pink-600/50 data-[state=active]:text-white flex items-center gap-1 sm:gap-2 text-xs sm:text-sm px-2 sm:px-3 py-2"><Wrench className="w-3 h-3 sm:w-4 sm:h-4"/><span className="hidden sm:inline">Desenvolvimento</span><span className="sm:hidden">Dev</span></TabsTrigger>
-            )}
-            {hasAccessToTab('production') && (
-              <TabsTrigger value="production" className="text-white data-[state=active]:bg-yellow-600/50 data-[state=active]:text-white flex items-center gap-1 sm:gap-2 text-xs sm:text-sm px-2 sm:px-3 py-2"><Package className="w-3 h-3 sm:w-4 sm:h-4"/><span className="hidden sm:inline">Produção</span><span className="sm:hidden">Prod</span></TabsTrigger>
-            )}
-            {hasAccessToTab('after-sales') && (
-              <TabsTrigger value="after-sales" className="text-white data-[state=active]:bg-cyan-600/50 data-[state=active]:text-white flex items-center gap-1 sm:gap-2 text-xs sm:text-sm px-2 sm:px-3 py-2"><Bell className="w-3 h-3 sm:w-4 sm:h-4"/><span className="hidden sm:inline">Pós-venda</span><span className="sm:hidden">Pós</span></TabsTrigger>
-            )}
-          </TabsList>
-
-          <div className="mt-4 sm:mt-6">
-            <TabsContent value="overview">
-              <ProtectedRoute requiredLevel="overview" user={user} isAuthenticated={isAuthenticated}>
-                <OverviewView data={dashboardData} />
-              </ProtectedRoute>
-            </TabsContent>
-            <TabsContent value="development">
-              <ProtectedRoute requiredLevel="development" user={user} isAuthenticated={isAuthenticated}>
-                <DevelopmentView data={dashboardData} />
-              </ProtectedRoute>
-            </TabsContent>
-            <TabsContent value="sales">
-              <ProtectedRoute requiredLevel="sales" user={user} isAuthenticated={isAuthenticated}>
-                <SalesView data={dashboardData} dateFilter={filterActive ? { startDate: appliedStartDate, endDate: appliedEndDate } : null} user={user} />
-              </ProtectedRoute>
-            </TabsContent>
-            <TabsContent value="production">
-              <ProtectedRoute requiredLevel="production" user={user} isAuthenticated={isAuthenticated}>
-                <ProductionView data={dashboardData} />
-              </ProtectedRoute>
-            </TabsContent>
-            <TabsContent value="after-sales">
-              <ProtectedRoute requiredLevel="after-sales" user={user} isAuthenticated={isAuthenticated}>
-                <AfterSalesView orders={dashboardData.orders} />
-              </ProtectedRoute>
-            </TabsContent>
+      <div className="pq-workspace">
+        <aside className="pq-sidebar">
+          <div className="pq-sidebar-label">NAVEGAÇÃO</div>
+          <nav className="pq-sidebar-nav" aria-label="Navegação principal">
+            {navigationItems.map((item) => {
+              const Icon = item.icon;
+              const active = activeTab === item.value;
+              return (
+                <button
+                  key={item.value}
+                  type="button"
+                  onClick={() => setActiveTab(item.value)}
+                  className={`pq-sidebar-item ${active ? 'is-active' : ''}`}
+                >
+                  <Icon className="w-4 h-4" />
+                  <span>{item.label}</span>
+                </button>
+              );
+            })}
+          </nav>
+          <div className="pq-sidebar-foot">
+            <div className="pq-sidebar-foot-icon"><CalendarDays className="w-4 h-4" /></div>
+            <div>
+              <strong>Período analisado</strong>
+              <span>{filterActive ? `${appliedStartDate.split('-').reverse().join('/')} → ${appliedEndDate.split('-').reverse().join('/')}` : 'Todos os dados'}</span>
+            </div>
           </div>
-        </Tabs>
-      </motion.div>
+        </aside>
+
+        <main className="pq-main">
+          <div className="pq-page-heading">
+            <div>
+              <p className="pq-eyebrow">PAINEL OPERACIONAL</p>
+              <h1>{navigationItems.find((item) => item.value === activeTab)?.label || 'Dashboard'}</h1>
+              <p>Acompanhe sua operação com os dados já existentes no sistema.</p>
+            </div>
+          </div>
+
+          <div className="pq-filter-panel">
+            <DateFilter
+              startDate={startDate}
+              endDate={endDate}
+              appliedStartDate={appliedStartDate}
+              appliedEndDate={appliedEndDate}
+              filterActive={filterActive}
+              onStartDateChange={handleStartDateChange}
+              onEndDateChange={handleEndDateChange}
+              onApplyFilter={handleApplyFilter}
+              onClearFilter={handleClearFilter}
+              loading={loading || refreshing}
+            />
+          </div>
+
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+            <div className="pq-mobile-tabs lg:hidden">
+              <TabsList className="pq-mobile-tabs-list">
+                {navigationItems.map((item) => {
+                  const Icon = item.icon;
+                  return (
+                    <TabsTrigger key={item.value} value={item.value} className="pq-mobile-tab">
+                      <Icon className="w-4 h-4" />
+                      <span>{item.label}</span>
+                    </TabsTrigger>
+                  );
+                })}
+              </TabsList>
+            </div>
+
+            <div className="pq-content-area">
+              <TabsContent value="overview" className="mt-0">
+                <ProtectedRoute requiredLevel="overview" user={user} isAuthenticated={isAuthenticated}>
+                  <OverviewView data={dashboardData} />
+                </ProtectedRoute>
+              </TabsContent>
+              <TabsContent value="development" className="mt-0">
+                <ProtectedRoute requiredLevel="development" user={user} isAuthenticated={isAuthenticated}>
+                  <DevelopmentView data={dashboardData} />
+                </ProtectedRoute>
+              </TabsContent>
+              <TabsContent value="sales" className="mt-0">
+                <ProtectedRoute requiredLevel="sales" user={user} isAuthenticated={isAuthenticated}>
+                  <SalesView data={dashboardData} dateFilter={filterActive ? { startDate: appliedStartDate, endDate: appliedEndDate } : null} user={user} />
+                </ProtectedRoute>
+              </TabsContent>
+              <TabsContent value="production" className="mt-0">
+                <ProtectedRoute requiredLevel="production" user={user} isAuthenticated={isAuthenticated}>
+                  <ProductionView data={dashboardData} />
+                </ProtectedRoute>
+              </TabsContent>
+              <TabsContent value="after-sales" className="mt-0">
+                <ProtectedRoute requiredLevel="after-sales" user={user} isAuthenticated={isAuthenticated}>
+                  <AfterSalesView orders={dashboardData.orders} />
+                </ProtectedRoute>
+              </TabsContent>
+            </div>
+          </Tabs>
+        </main>
+      </div>
     </div>
   );
 };
