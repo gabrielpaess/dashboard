@@ -10,7 +10,7 @@ import AfterSalesView from './views/AfterSalesView';
 import Login from './Login';
 import UserHeader from './UserHeader';
 import ProtectedRoute from './ProtectedRoute';
-import { Eye, Wrench, DollarSign, Package, Bell, LayoutGrid, CalendarDays } from 'lucide-react';
+import { Eye, Wrench, DollarSign, Package, Bell, LayoutGrid, CalendarDays, Wallet } from 'lucide-react';
 import DateFilter from './DateFilter';
 import { nestjsApiClient, nestjsDashboardService, validateApiConnection } from '../services';
 import { authService } from '../services/authServiceSimple.js';
@@ -1079,6 +1079,7 @@ const Dashboard = ({
     { value: 'development', label: 'Desenvolvimento', icon: Wrench, level: 'development' },
     { value: 'production', label: 'Produção', icon: Package, level: 'production' },
     { value: 'after-sales', label: 'Pós-venda', icon: Bell, level: 'after-sales' },
+  { value: 'finance', label: 'Financeiro', icon: Wallet, level: 'finance' },
   ].filter((item) => hasAccessToTab(item.level));
 
   return (
