@@ -13,6 +13,8 @@ const VendasPorVendedor = ({ dateFilter, onDataChange }) => {
   const [filtroVendedor, setFiltroVendedor] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [financeiroPedidos, setFinanceiroPedidos] = useState({});
+  const [pedidoFinanceiroAberto, setPedidoFinanceiroAberto] = useState(null);
 
   // Buscar dados quando o filtro de data mudar
   useEffect(() => {
@@ -436,6 +438,159 @@ const VendasPorVendedor = ({ dateFilter, onDataChange }) => {
                     </p>
                   </div>
                 </div>
+
+            <button
+              type="button"
+              onClick={() =>
+                setPedidoFinanceiroAberto(
+                  pedidoFinanceiroAberto === pedido.id ? null : pedido.id
+                )
+              }
+              className="mt-3 w-full rounded-lg border border-blue-500/30 bg-blue-500/10 px-3 py-2 text-sm font-medium text-blue-300 hover:bg-blue-500/20"
+            >
+              {pedidoFinanceiroAberto === pedido.id ? 'Fechar financeiro' : 'Financeiro do pedido'}
+            </button>
+
+            {pedidoFinanceiroAberto === pedido.id && (
+              <div className="mt-3 space-y-3 rounded-lg border border-white/10 bg-black/20 p-4">
+                <div className="grid gap-3 md:grid-cols-2">
+
+                  <div>
+                    <label className="mb-1 block text-xs text-gray-400">Data do pagamento</label>
+                    <input
+                      type="date"
+                      value={financeiroPedidos[pedido.id]?.dataPagamento || ''}
+                      onChange={(e) => setFinanceiroPedidos((prev) => ({
+                        ...prev,
+                        [pedido.id]: { ...prev[pedido.id], dataPagamento: e.target.value }
+                      }))}
+                      className="w-full rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-sm text-white"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="mb-1 block text-xs text-gray-400">Pagamento</label>
+                    <select
+                      value={financeiroPedidos[pedido.id]?.statusPagamento || ''}
+                      onChange={(e) => setFinanceiroPedidos((prev) => ({
+                        ...prev,
+                        [pedido.id]: { ...prev[pedido.id], statusPagamento: e.target.value }
+                      }))}
+                      className="w-full rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-sm text-white"
+                    >
+                      <option value="">Selecione</option>
+                      <option value="Pendente">Pendente</option>
+                      <option value="50%">50% pago</option>
+                      <option value="100%">100% pago</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="mb-1 block text-xs text-gray-400">Forma de pagamento</label>
+                    <select
+                      value={financeiroPedidos[pedido.id]?.formaPagamento || ''}
+                      onChange={(e) => setFinanceiroPedidos((prev) => ({
+                        ...prev,
+                        [pedido.id]: { ...prev[pedido.id], formaPagamento: e.target.value }
+                      }))}
+                      className="w-full rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-sm text-white"
+                    >
+                      <option value="">Selecione</option>
+                      <option value="PIX">PIX</option>
+                      <option value="Cartão">Cartão</option>
+                      <option value="Boleto">Boleto</option>
+                    </select>
+                  </div>
+
+                  {financeiroPedidos[pedido.id]?.formaPagamento === 'Cartão' && (
+                    <div>
+                      <label className="mb-1 block text-xs text-gray-400">Parcelas</label>
+                      <input
+                        type="number"
+                        min="1"
+                        value={financeiroPedidos[pedido.id]?.parcelas || ''}
+                        onChange={(e) => setFinanceiroPedidos((prev) => ({
+                          ...prev,
+                          [pedido.id]: { ...prev[pedido.id], parcelas: e.target.value }
+                        }))}
+                        className="w-full rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-sm text-white"
+                      />
+                    </div>
+                  )}
+
+                  <div>
+                    <label className="mb-1 block text-xs text-gray-400">Taxa do cartão</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={financeiroPedidos[pedido.id]?.taxaCartao || ''}
+                      onChange={(e) => setFinanceiroPedidos((prev) => ({
+                        ...prev,
+                        [pedido.id]: { ...prev[pedido.id], taxaCartao: e.target.value }
+                      }))}
+                      className="w-full rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-sm text-white"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="mb-1 block text-xs text-gray-400">Frete cobrado do cliente</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={financeiroPedidos[pedido.id]?.freteCliente || ''}
+                      onChange={(e) => setFinanceiroPedidos((prev) => ({
+                        ...prev,
+                        [pedido.id]: { ...prev[pedido.id], freteCliente: e.target.value }
+                      }))}
+                      className="w-full rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-sm text-white"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="mb-1 block text-xs text-gray-400">Frete pago pela empresa</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={financeiroPedidos[pedido.id]?.freteEmpresa || ''}
+                      onChange={(e) => setFinanceiroPedidos((prev) => ({
+                        ...prev,
+                        [pedido.id]: { ...prev[pedido.id], freteEmpresa: e.target.value }
+                      }))}
+                      className="w-full rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-sm text-white"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="mb-1 block text-xs text-gray-400">Valor líquido recebido</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={financeiroPedidos[pedido.id]?.valorLiquido || ''}
+                      onChange={(e) => setFinanceiroPedidos((prev) => ({
+                        ...prev,
+                        [pedido.id]: { ...prev[pedido.id], valorLiquido: e.target.value }
+                      }))}
+                      className="w-full rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-sm text-white"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="mb-1 block text-xs text-gray-400">Saldo a receber</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={financeiroPedidos[pedido.id]?.saldoReceber || ''}
+                      onChange={(e) => setFinanceiroPedidos((prev) => ({
+                        ...prev,
+                        [pedido.id]: { ...prev[pedido.id], saldoReceber: e.target.value }
+                      }))}
+                      className="w-full rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-sm text-white"
+                    />
+                  </div>
+
+                </div>
+              </div>
+            )}
               </motion.div>
             ))}
           </div>
