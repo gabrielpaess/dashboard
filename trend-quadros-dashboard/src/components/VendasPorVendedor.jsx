@@ -487,10 +487,34 @@ const VendasPorVendedor = ({ dateFilter, onDataChange }) => {
                     <label className="mb-1 block text-xs text-gray-400">Pagamento</label>
                     <select
                       value={financeiroPedidos[pedido.id]?.statusPagamento || ''}
-                      onChange={(e) => setFinanceiroPedidos((prev) => ({
-                        ...prev,
-                        [pedido.id]: { ...prev[pedido.id], statusPagamento: e.target.value }
-                      }))}
+                      onChange={(e) => {
+                        const statusPagamento = e.target.value;
+                        const valorTotal = Number(pedido.valor_total || 0);
+
+                        let valorPago = 0;
+                        if (statusPagamento === '50%') valorPago = valorTotal / 2;
+                        if (statusPagamento === '100%') valorPago = valorTotal;
+
+                        setFinanceiroPedidos((prev) => {
+                          const atual = prev[pedido.id] || {};
+                          const taxa = Number(atual.taxaCartao || 0);
+                          const custoTaxa = valorPago * (taxa / 100);
+                          const valorLiquido = valorPago - custoTaxa;
+                          const saldoReceber = Math.max(0, valorTotal - valorPago);
+
+                          return {
+                            ...prev,
+                            [pedido.id]: {
+                              ...atual,
+                              statusPagamento,
+                              valorPago,
+                              custoTaxa,
+                              valorLiquido,
+                              saldoReceber
+                            }
+                          };
+                        });
+                      }}
                       className="w-full rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-sm text-white"
                     >
                       <option value="">Selecione</option>
@@ -546,6 +570,46 @@ const VendasPorVendedor = ({ dateFilter, onDataChange }) => {
                       {financeiroPedidos[pedido.id]?.taxaCartao
                         ? `${Number(financeiroPedidos[pedido.id].taxaCartao).toFixed(2).replace('.', ',')}%`
                         : 'Selecione as parcelas'}
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="mb-1 block text-xs text-gray-400">Valor pago</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={financeiroPedidos[pedido.id]?.valorPago || ''}
+                      onChange={(e) => {
+                        const valorPago = Number(e.target.value || 0);
+                        const taxa = Number(financeiroPedidos[pedido.id]?.taxaCartao || 0);
+                        const custoTaxa = valorPago * (taxa / 100);
+                        const valorLiquido = valorPago - custoTaxa;
+
+                        setFinanceiroPedidos((prev) => ({
+                          ...prev,
+                          [pedido.id]: {
+                            ...prev[pedido.id],
+                            valorPago,
+                            custoTaxa,
+                            valorLiquido
+                          }
+                        }));
+                      }}
+                      className="w-full rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-sm text-white"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="mb-1 block text-xs text-gray-400">Custo da taxa</label>
+                    <div className="w-full rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-sm text-red-300">
+                      {formatCurrency(financeiroPedidos[pedido.id]?.custoTaxa || 0)}
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="mb-1 block text-xs text-gray-400">Valor líquido recebido</label>
+                    <div className="w-full rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-sm text-emerald-300">
+                      {formatCurrency(financeiroPedidos[pedido.id]?.valorLiquido || 0)}
                     </div>
                   </div>
 
