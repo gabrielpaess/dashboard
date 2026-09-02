@@ -6,6 +6,21 @@ import { Button } from './ui/button';
 import { nestjsApiClient } from '../services';
 import { DateFormatter } from '../services/utils/DateFormatter.js';
 
+const taxasCartao = {
+  1: 4.50,
+  2: 5.69,
+  3: 6.13,
+  4: 6.61,
+  5: 7.36,
+  6: 7.93,
+  7: 8.77,
+  8: 9.63,
+  9: 10.44,
+  10: 10.77,
+  11: 11.79,
+  12: 12.63,
+};
+
 const VendasPorVendedor = ({ dateFilter, onDataChange }) => {
   const [vendedores, setVendedores] = useState([]);
   const [vendedorSelecionado, setVendedorSelecionado] = useState(null);
@@ -509,10 +524,17 @@ const VendasPorVendedor = ({ dateFilter, onDataChange }) => {
                         type="number"
                         min="1"
                         value={financeiroPedidos[pedido.id]?.parcelas || ''}
-                        onChange={(e) => setFinanceiroPedidos((prev) => ({
-                          ...prev,
-                          [pedido.id]: { ...prev[pedido.id], parcelas: e.target.value }
-                        }))}
+                        onChange={(e) => {
+                          const parcelas = Number(e.target.value || 0);
+                          setFinanceiroPedidos((prev) => ({
+                            ...prev,
+                            [pedido.id]: {
+                              ...prev[pedido.id],
+                              parcelas,
+                              taxaCartao: taxasCartao[parcelas] || 0
+                            }
+                          }));
+                        }}
                         className="w-full rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-sm text-white"
                       />
                     </div>
@@ -520,16 +542,11 @@ const VendasPorVendedor = ({ dateFilter, onDataChange }) => {
 
                   <div>
                     <label className="mb-1 block text-xs text-gray-400">Taxa do cartão</label>
-                    <input
-                      type="number"
-                      step="0.01"
-                      value={financeiroPedidos[pedido.id]?.taxaCartao || ''}
-                      onChange={(e) => setFinanceiroPedidos((prev) => ({
-                        ...prev,
-                        [pedido.id]: { ...prev[pedido.id], taxaCartao: e.target.value }
-                      }))}
-                      className="w-full rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-sm text-white"
-                    />
+                    <div className="w-full rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-sm text-white">
+                      {financeiroPedidos[pedido.id]?.taxaCartao
+                        ? `${Number(financeiroPedidos[pedido.id].taxaCartao).toFixed(2).replace('.', ',')}%`
+                        : 'Selecione as parcelas'}
+                    </div>
                   </div>
 
                   <div>
