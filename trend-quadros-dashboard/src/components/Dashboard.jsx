@@ -7,6 +7,7 @@ import DevelopmentView from './views/DevelopmentView';
 import SalesView from './views/SalesView';
 import ProductionView from './views/ProductionView';
 import AfterSalesView from './views/AfterSalesView';
+import FinanceView from './views/FinanceView';
 import Login from './Login';
 import UserHeader from './UserHeader';
 import ProtectedRoute from './ProtectedRoute';
@@ -1199,6 +1200,9 @@ const Dashboard = ({
                 </ProtectedRoute>
               </TabsContent>
             </div>
+          <TabsContent value="finance" className="mt-0">
+            <FinanceView />
+          </TabsContent>
           </Tabs>
         </main>
       </div>
