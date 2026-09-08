@@ -8,6 +8,7 @@ import SalesView from './views/SalesView';
 import ProductionView from './views/ProductionView';
 import AfterSalesView from './views/AfterSalesView';
 import FinanceView from './views/FinanceView';
+import PedidosFinanceiroView from './views/PedidosFinanceiroView';
 import Login from './Login';
 import UserHeader from './UserHeader';
 import ProtectedRoute from './ProtectedRoute';
@@ -716,6 +717,7 @@ const Dashboard = ({
       const processedData = {
         // Dados básicos
         pedidos: pedidos,
+      todosPedidos: allPedidos,
         totalPedidos: totalPedidos,
         totalRevenue: totalRevenue,
         averageOrderValue: averageOrderValue,
@@ -1077,6 +1079,7 @@ const Dashboard = ({
   const navigationItems = [
     { value: 'overview', label: 'Visão Geral', icon: Eye, level: 'overview' },
     { value: 'sales', label: 'Vendas', icon: DollarSign, level: 'sales' },
+    { value: 'orders-finance', label: 'Pedidos Financeiro', icon: Package, level: 'sales' },
     { value: 'development', label: 'Desenvolvimento', icon: Wrench, level: 'development' },
     { value: 'production', label: 'Produção', icon: Package, level: 'production' },
     { value: 'after-sales', label: 'Pós-venda', icon: Bell, level: 'after-sales' },
@@ -1189,6 +1192,12 @@ const Dashboard = ({
                   <SalesView data={dashboardData} dateFilter={filterActive ? { startDate: appliedStartDate, endDate: appliedEndDate } : null} user={user} />
                 </ProtectedRoute>
               </TabsContent>
+
+        <TabsContent value="orders-finance" className="mt-0">
+          <ProtectedRoute requiredLevel="sales" user={user} isAuthenticated={isAuthenticated}>
+            <PedidosFinanceiroView data={dashboardData} />
+          </ProtectedRoute>
+        </TabsContent>
               <TabsContent value="production" className="mt-0">
                 <ProtectedRoute requiredLevel="production" user={user} isAuthenticated={isAuthenticated}>
                   <ProductionView data={dashboardData} />
