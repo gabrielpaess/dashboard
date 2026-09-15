@@ -372,25 +372,58 @@ const FinanceView = () => {
               </p>
             ) : (
               payables.map((item) => (
-                <div
-                  key={item.id}
-                  className="flex items-center justify-between rounded-lg border border-slate-800 bg-slate-950 p-3"
-                >
-                  <div>
-                    <p className="font-medium text-white">
-                      {item.description}
-                    </p>
-                    <p className="text-xs text-slate-500">
-                      {item.dueDate || 'Sem vencimento'}
-                    </p>
-                  </div>
+              <div
+                key={item.id}
+                className="flex items-center justify-between gap-4 rounded-lg border border-slate-800 bg-slate-950 p-3"
+              >
+                <div>
+                  <p className="font-medium text-white">
+                    {item.description}
+                  </p>
 
-                  <strong className="text-red-400">
+                  <p className="text-xs text-slate-500">
+                    {item.dueDate || 'Sem vencimento'}
+                  </p>
+
+                  <p className={`mt-1 text-xs font-semibold ${
+                    item.status === 'pago'
+                      ? 'text-emerald-400'
+                      : 'text-amber-400'
+                  }`}>
+                    {item.status === 'pago' ? 'PAGO' : 'A PAGAR'}
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <strong className={
+                    item.status === 'pago'
+                      ? 'text-emerald-400'
+                      : 'text-red-400'
+                  }>
                     {brl(item.amount)}
                   </strong>
+
+                  {item.status !== 'pago' && (
+                    <button
+                      type="button"
+                      onClick={() => marcarContaComoPaga(item.id)}
+                      className="rounded-lg bg-emerald-500/10 px-3 py-2 text-xs font-semibold text-emerald-400 hover:bg-emerald-500/20"
+                    >
+                      ✓ Pago
+                    </button>
+                  )}
+
+                  <button
+                    type="button"
+                    onClick={() => excluirContaPagar(item.id)}
+                    className="rounded-lg bg-red-500/10 px-3 py-2 text-xs font-semibold text-red-400 hover:bg-red-500/20"
+                  >
+                    Excluir
+                  </button>
                 </div>
-              ))
-            )}
+              </div>
+            ))
+          )}
           </div>
         </div>
 
