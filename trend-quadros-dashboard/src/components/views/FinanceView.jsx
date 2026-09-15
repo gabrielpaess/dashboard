@@ -134,6 +134,63 @@ const FinanceView = () => {
     });
   };
 
+
+  const marcarContaComoPaga = async (id) => {
+    try {
+      const response = await fetch(
+        `https://v1.pontodeshboard.com/api/financeiro/contas-pagar/${id}/pago`,
+        { method: 'PATCH' }
+      );
+
+      const result = await response.json();
+
+      if (!response.ok || !result.success) {
+        throw new Error('Erro ao marcar conta como paga');
+      }
+
+      const conta = result.data;
+
+      setPayables((current) =>
+        current.map((item) =>
+          item.id === id
+            ? {
+                ...item,
+                status: conta.status,
+                dataPagamento: conta.data_pagamento || '',
+              }
+            : item
+        )
+      );
+    } catch (error) {
+      console.error('Erro ao marcar conta como paga:', error);
+      alert('Não foi possível marcar a conta como paga.');
+    }
+  };
+
+  const excluirContaPagar = async (id) => {
+    if (!window.confirm('Deseja realmente excluir esta conta?')) return;
+
+    try {
+      const response = await fetch(
+        `https://v1.pontodeshboard.com/api/financeiro/contas-pagar/${id}`,
+        { method: 'DELETE' }
+      );
+
+      const result = await response.json();
+
+      if (!response.ok || !result.success) {
+        throw new Error('Erro ao excluir conta');
+      }
+
+      setPayables((current) =>
+        current.filter((item) => item.id !== id)
+      );
+    } catch (error) {
+      console.error('Erro ao excluir conta:', error);
+      alert('Não foi possível excluir a conta.');
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div>
