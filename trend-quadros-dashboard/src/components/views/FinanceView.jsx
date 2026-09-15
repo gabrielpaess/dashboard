@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 
 const brl = (value) =>
   new Intl.NumberFormat('pt-BR', {
@@ -10,6 +10,25 @@ const FinanceView = () => {
   const [cash, setCash] = useState(0);
 
   const [payables, setPayables] = useState([]);
+
+  useEffect(() => {
+    fetch('https://v1.pontodeshboard.com/api/financeiro/contas-pagar')
+      .then((response) => response.json())
+      .then((result) => {
+        if (result.success && Array.isArray(result.data)) {
+          setPayables(result.data.map((conta) => ({
+            id: conta.id,
+            description: conta.descricao,
+            amount: Number(conta.valor),
+            dueDate: conta.data_vencimento || '',
+            status: conta.status || 'pendente',
+          })));
+        }
+      })
+      .catch((error) => {
+        console.error('Erro ao carregar contas a pagar:', error);
+      });
+  }, []);
   const [receivables, setReceivables] = useState([]);
 
   const [payableForm, setPayableForm] = useState({
@@ -40,26 +59,57 @@ const FinanceView = () => {
     };
   }, [cash, payables, receivables]);
 
-  const addPayable = (e) => {
+  const addPayable = async (e) => {
     e.preventDefault();
 
     if (!payableForm.description || !payableForm.amount) return;
 
-    setPayables((current) => [
-      ...current,
-      {
-        id: Date.now(),
-        ...payableForm,
-        amount: Number(payableForm.amount),
-        status: 'Pendente',
-      },
-    ]);
+    try {
+      const response = await fetch(
+        'https://v1.pontodeshboard.com/api/financeiro/contas-pagar',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            descricao: payableForm.description,
+            valor: Number(payableForm.amount),
+            data_vencimento: payableForm.dueDate || undefined,
+            status: 'pendente',
+          }),
+        }
+      );
 
-    setPayableForm({
-      description: '',
-      amount: '',
-      dueDate: '',
-    });
+      const result = await response.json();
+
+      if (!response.ok || !result.success) {
+        throw new Error('Erro ao salvar conta');
+      }
+
+      const conta = result.data;
+
+      setPayables((current) => [
+        ...current,
+        {
+          id: conta.id,
+          description: conta.descricao,
+          amount: Number(conta.valor),
+          dueDate: conta.data_vencimento || '',
+          status: conta.status || 'pendente',
+        },
+      ]);
+
+      setPayableForm({
+        description: '',
+        amount: '',
+        dueDate: '',
+      });
+
+    } catch (error) {
+      console.error('Erro ao cadastrar conta a pagar:', error);
+      alert('Não foi possível salvar a conta.');
+    }
   };
 
   const addReceivable = (e) => {

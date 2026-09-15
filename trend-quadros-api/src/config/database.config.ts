@@ -3,6 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { Pedido } from '../database/entities/pedido.entity';
 import { Usuario } from '../database/entities/usuario.entity';
 import { SalesGoal } from '../database/entities/sales-goal.entity';
+import { ContaPagar } from '../database/entities/conta-pagar.entity';
 
 export const getDatabaseConfig = (configService: ConfigService): TypeOrmModuleOptions => ({
   type: 'postgres',
@@ -11,7 +12,7 @@ export const getDatabaseConfig = (configService: ConfigService): TypeOrmModuleOp
   username: configService.get('DB_USER', 'postgres'),
   password: configService.get('DB_PASSWORD'),
   database: configService.get('DB_NAME', 'dashboard'),
-  entities: [Pedido, Usuario, SalesGoal],
+  entities: [Pedido, Usuario, SalesGoal, ContaPagar],
   synchronize: configService.get('NODE_ENV') === 'development',
   logging: configService.get('NODE_ENV') === 'development',
   migrations: ['src/database/migrations/*.ts'],

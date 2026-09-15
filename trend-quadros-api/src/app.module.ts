@@ -8,9 +8,11 @@ import { OrdersModule } from './modules/orders/orders.module';
 import { SyncModule } from './modules/sync/sync.module';
 import { DashboardModule } from './modules/dashboard/dashboard.module';
 import { SalesGoalsModule } from './modules/sales-goals/sales-goals.module';
+import { FinanceiroModule } from './modules/financeiro/financeiro.module';
 
 @Module({
   imports: [
+    FinanceiroModule,
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: '.env',
