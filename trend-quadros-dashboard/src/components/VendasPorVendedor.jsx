@@ -454,6 +454,31 @@ const VendasPorVendedor = ({ dateFilter, onDataChange }) => {
                   </div>
                 </div>
 
+            {(() => {
+              const financeiro = financeiroPedidos[pedido.id] || {};
+              const status = financeiro.statusPagamento;
+              const cartao = financeiro.formaPagamento === 'Cartão';
+
+              let texto = 'EM ABERTO';
+              let classe = 'border-red-500/30 bg-red-500/10 text-red-400';
+
+              if (status === '50%') {
+                texto = '50% PAGO';
+                classe = 'border-yellow-500/30 bg-yellow-500/10 text-yellow-400';
+              }
+
+              if (status === '100%') {
+                texto = cartao ? 'PAGO NO CARTÃO' : 'PAGO 100%';
+                classe = 'border-emerald-500/30 bg-emerald-500/10 text-emerald-400';
+              }
+
+              return (
+                <div className={`mt-3 inline-flex rounded-full border px-3 py-1 text-xs font-bold ${classe}`}>
+                  {texto}
+                </div>
+              );
+            })()}
+
             <button
               type="button"
               onClick={() =>
