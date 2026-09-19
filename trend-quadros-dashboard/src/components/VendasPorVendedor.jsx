@@ -224,6 +224,55 @@ const VendasPorVendedor = ({ dateFilter, onDataChange }) => {
     }
   };
 
+  const salvarFinanceiroPedido = async (pedido) => {
+    try {
+      const financeiro = financeiroPedidos[pedido.id] || {};
+
+      const payload = {
+        data_pagamento: financeiro.dataPagamento || null,
+        status_pagamento: financeiro.statusPagamento || 'Pendente',
+        forma_pagamento: financeiro.formaPagamento || null,
+        parcelas: financeiro.formaPagamento === 'Cartão'
+          ? Number(financeiro.parcelas || 1)
+          : null,
+        taxa_cartao: Number(financeiro.taxaCartao || 0),
+        valor_pago: Number(financeiro.valorPago || 0),
+        custo_taxa: Number(financeiro.custoTaxa || 0),
+        valor_liquido: Number(financeiro.valorLiquido || 0),
+        frete_cliente: Number(financeiro.freteCliente || 0),
+        frete_empresa: Number(financeiro.freteEmpresa || 0),
+        saldo_receber: Number(financeiro.saldoReceber || 0)
+      };
+
+      const identificador = pedido.pedido_id || pedido.numero;
+
+      const response = await nestjsApiClient.request(
+        `/api/orders/${identificador}`,
+        {
+          method: 'PATCH',
+          body: JSON.stringify(payload)
+        }
+      );
+
+      if (!response.success) {
+        throw new Error('Não foi possível salvar os dados financeiros');
+      }
+
+      setPedidosVendedor((prev) =>
+        prev.map((p) =>
+          p.id === pedido.id
+            ? { ...p, ...payload }
+            : p
+        )
+      );
+
+      alert('Informações financeiras salvas com sucesso!');
+    } catch (err) {
+      console.error('Erro ao salvar financeiro:', err);
+      alert(`Erro ao salvar: ${err.message}`);
+    }
+  };
+
   const formatCurrency = (value) => {
     const numValue = parseFloat(value) || 0;
     if (isNaN(numValue)) {
@@ -695,7 +744,15 @@ const VendasPorVendedor = ({ dateFilter, onDataChange }) => {
                   </div>
 
                 </div>
+              <button
+                type="button"
+                onClick={() => salvarFinanceiroPedido(pedido)}
+                className="mt-4 w-full rounded-lg bg-blue-600 px-4 py-3 text-sm font-bold text-white transition hover:bg-blue-500"
+              >
+                SALVAR INFORMAÇÕES
+              </button>
               </div>
+
             )}
               </motion.div>
             ))}

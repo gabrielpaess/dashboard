@@ -34,4 +34,34 @@ export class FinanceiroService {
 
     return this.contaPagarRepository.save(conta);
   }
+
+  async marcarComoPago(id: number) {
+    const conta = await this.contaPagarRepository.findOne({
+      where: { id },
+    });
+
+    if (!conta) {
+      throw new Error('Conta a pagar não encontrada');
+    }
+
+    conta.status = 'pago';
+    conta.data_pagamento = new Date().toISOString().split('T')[0];
+
+    return this.contaPagarRepository.save(conta);
+  }
+
+  async excluirContaPagar(id: number) {
+    const conta = await this.contaPagarRepository.findOne({
+      where: { id },
+    });
+
+    if (!conta) {
+      throw new Error('Conta a pagar não encontrada');
+    }
+
+    await this.contaPagarRepository.remove(conta);
+
+    return { id, excluido: true };
+  }
+
 }

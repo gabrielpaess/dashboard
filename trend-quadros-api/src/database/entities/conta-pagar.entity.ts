@@ -17,6 +17,9 @@ export class ContaPagar {
   @Column({ type: 'varchar', length: 30, default: 'pendente' })
   status: string;
 
+  @Column({ type: 'date', nullable: true })
+  data_pagamento: string;
+
   @CreateDateColumn()
   created_at: Date;
 

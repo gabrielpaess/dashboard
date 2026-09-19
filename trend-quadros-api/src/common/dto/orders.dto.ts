@@ -118,6 +118,62 @@ export class UpdatePedidoDto {
   @IsOptional()
   @IsBoolean()
   envio_45?: boolean;
+
+  @ApiProperty({ example: '2026-09-15', required: false })
+  @IsOptional()
+  @IsDateString()
+  data_pagamento?: string;
+
+  @ApiProperty({ example: '50%', required: false })
+  @IsOptional()
+  @IsString()
+  status_pagamento?: string;
+
+  @ApiProperty({ example: 'PIX', required: false })
+  @IsOptional()
+  @IsString()
+  forma_pagamento?: string;
+
+  @ApiProperty({ example: 3, required: false })
+  @IsOptional()
+  @IsNumber()
+  parcelas?: number;
+
+  @ApiProperty({ example: 6.13, required: false })
+  @IsOptional()
+  @IsNumber()
+  taxa_cartao?: number;
+
+  @ApiProperty({ example: 2134.20, required: false })
+  @IsOptional()
+  @IsNumber()
+  valor_pago?: number;
+
+  @ApiProperty({ example: 130.82, required: false })
+  @IsOptional()
+  @IsNumber()
+  custo_taxa?: number;
+
+  @ApiProperty({ example: 2003.38, required: false })
+  @IsOptional()
+  @IsNumber()
+  valor_liquido?: number;
+
+  @ApiProperty({ example: 100, required: false })
+  @IsOptional()
+  @IsNumber()
+  frete_cliente?: number;
+
+  @ApiProperty({ example: 65, required: false })
+  @IsOptional()
+  @IsNumber()
+  frete_empresa?: number;
+
+  @ApiProperty({ example: 2134.20, required: false })
+  @IsOptional()
+  @IsNumber()
+  saldo_receber?: number;
+
 }
 
 export class UpdateNotificationsDto {

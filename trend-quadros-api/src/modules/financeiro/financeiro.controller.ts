@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Post } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post } from '@nestjs/common';
 import { FinanceiroService } from './financeiro.service';
 
 @Controller('financeiro')
@@ -32,4 +32,26 @@ export class FinanceiroController {
       data: conta,
     };
   }
+
+  @Patch('contas-pagar/:id/pago')
+  async marcarComoPago(@Param('id') id: string) {
+    const conta = await this.financeiroService.marcarComoPago(Number(id));
+
+    return {
+      success: true,
+      data: conta,
+    };
+  }
+
+  @Delete('contas-pagar/:id')
+  async excluirContaPagar(@Param('id') id: string) {
+    const resultado = await this.financeiroService.excluirContaPagar(Number(id));
+
+    return {
+      success: true,
+      data: resultado,
+    };
+  }
+
+
 }
