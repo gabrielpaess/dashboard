@@ -189,15 +189,15 @@
    negócio permanecem intactos.
    ================================================================ */
 :root {
-  --pq-bg: #f7f8fa;
-  --pq-sidebar: #ffffff;
-  --pq-card: #ffffff;
-  --pq-card-alt: #f3f5f8;
-  --pq-line: #e5e7eb;
-  --pq-text: #111827;
-  --pq-muted: #6b7280;
-  --pq-blue: #2563eb;
-  --pq-blue-soft: #eff6ff;
+  --pq-bg: #0b0e14;
+  --pq-sidebar: #0a0d12;
+  --pq-card: #121720;
+  --pq-card-alt: #171d28;
+  --pq-line: rgba(255,255,255,.075);
+  --pq-text: #f3f6fb;
+  --pq-muted: #8390a5;
+  --pq-blue: #3b8cf5;
+  --pq-blue-soft: rgba(59,140,245,.12);
 }
 
 html, body, #root { min-height: 100%; background: var(--pq-bg); }
@@ -303,18 +303,3 @@ body { background: var(--pq-bg) !important; color: var(--pq-text); }
   .pq-main { padding: 18px 12px 32px; }
   .pq-page-heading { margin-bottom: 13px; }
 }
-/* PONTO ANALYTICS - TEMA BRANCO */
-.pq-topbar { background:#fff !important; border-bottom-color:#e5e7eb !important; }
-.pq-brand-name,.pq-page-heading h1 { color:#111827 !important; }
-.pq-brand-subtitle,.pq-sync-status { color:#6b7280 !important; }
-.pq-icon-button { background:#fff !important; color:#475569 !important; border-color:#e5e7eb !important; }
-.pq-icon-button:hover { background:#f3f4f6 !important; color:#111827 !important; border-color:#d1d5db !important; }
-.pq-sidebar-label { color:#9ca3af !important; }
-.pq-sidebar-item { color:#64748b !important; }
-.pq-sidebar-item:hover { color:#111827 !important; background:#f3f4f6 !important; }
-.pq-sidebar-item.is-active { color:#2563eb !important; background:#eff6ff !important; border-color:#dbeafe !important; }
-.pq-sidebar-item.is-active svg { color:#2563eb !important; }
-.pq-sidebar-foot strong { color:#374151 !important; }
-.pq-eyebrow { color:#2563eb !important; }
-.pq-mobile-tab[data-state="active"] { color:#2563eb !important; background:#eff6ff !important; }
-.pq-app-shell .gradient-text { color:#111827 !important; }
