@@ -43,24 +43,56 @@ const OverviewView = ({
   }} transition={{
     duration: 0.5
   }}>
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <motion.div variants={cardVariants} initial="hidden" animate="visible" custom={1} className="glass-effect rounded-xl p-6 text-center h-40 flex flex-col justify-center">
-          <ShoppingCart className="w-10 h-10 mx-auto mb-3 text-blue-400" />
-          <h3 className="text-lg font-semibold text-blue-400 mb-2">Total de Vendas</h3>
-          <p className="text-4xl font-bold text-white mb-1">{wip['Total Ativos'] || 0}</p>
-          <p className="text-sm text-gray-400">Total de pedidos</p>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <motion.div variants={cardVariants} initial="hidden" animate="visible" custom={1}
+          className="rounded-2xl border border-slate-700/60 bg-[#171c25] px-5 py-4 min-h-[118px] flex flex-col justify-between shadow-sm">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-[11px] text-slate-400">Pedidos ativos</p>
+              <h3 className="mt-1 text-sm font-semibold text-slate-200">Total de Vendas</h3>
+            </div>
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-500/10">
+              <ShoppingCart className="h-4 w-4 text-blue-400" />
+            </div>
+          </div>
+          <div className="mt-4 flex items-end justify-between">
+            <p className="text-[28px] leading-none font-bold tracking-tight text-blue-400">{wip['Total Ativos'] || 0}</p>
+            <span className="text-[10px] text-slate-500">Total de pedidos</span>
+          </div>
         </motion.div>
-        <motion.div variants={cardVariants} initial="hidden" animate="visible" custom={3} className="glass-effect rounded-xl p-6 text-center h-40 flex flex-col justify-center">
-          <Wrench className="w-10 h-10 mx-auto mb-3 text-orange-400" />
-          <h3 className="text-lg font-semibold text-orange-400 mb-2">Em Desenvolvimento</h3>
-          <p className="text-4xl font-bold text-white mb-1">{wip['Em Desenvolvimento'] || 0}</p>
-          <p className="text-sm text-gray-400">Itens personalizados</p>
+
+        <motion.div variants={cardVariants} initial="hidden" animate="visible" custom={3}
+          className="rounded-2xl border border-slate-700/60 bg-[#171c25] px-5 py-4 min-h-[118px] flex flex-col justify-between shadow-sm">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-[11px] text-slate-400">Fluxo operacional</p>
+              <h3 className="mt-1 text-sm font-semibold text-slate-200">Em Desenvolvimento</h3>
+            </div>
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-orange-500/10">
+              <Wrench className="h-4 w-4 text-orange-400" />
+            </div>
+          </div>
+          <div className="mt-4 flex items-end justify-between">
+            <p className="text-[28px] leading-none font-bold tracking-tight text-orange-400">{wip['Em Desenvolvimento'] || 0}</p>
+            <span className="text-[10px] text-slate-500">Itens personalizados</span>
+          </div>
         </motion.div>
-        <motion.div variants={cardVariants} initial="hidden" animate="visible" custom={2} className="glass-effect rounded-xl p-6 text-center h-40 flex flex-col justify-center">
-          <Package className="w-10 h-10 mx-auto mb-3 text-yellow-400" />
-          <h3 className="text-lg font-semibold text-yellow-400 mb-2">Em Produção</h3>
-          <p className="text-4xl font-bold text-white mb-1">{wip['Em Produção'] || 0}</p>
-          <p className="text-sm text-gray-400">Itens em produção</p>
+
+        <motion.div variants={cardVariants} initial="hidden" animate="visible" custom={2}
+          className="rounded-2xl border border-slate-700/60 bg-[#171c25] px-5 py-4 min-h-[118px] flex flex-col justify-between shadow-sm">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-[11px] text-slate-400">Produção atual</p>
+              <h3 className="mt-1 text-sm font-semibold text-slate-200">Em Produção</h3>
+            </div>
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-yellow-500/10">
+              <Package className="h-4 w-4 text-yellow-400" />
+            </div>
+          </div>
+          <div className="mt-4 flex items-end justify-between">
+            <p className="text-[28px] leading-none font-bold tracking-tight text-yellow-400">{wip['Em Produção'] || 0}</p>
+            <span className="text-[10px] text-slate-500">Itens em produção</span>
+          </div>
         </motion.div>
       </div>
       
