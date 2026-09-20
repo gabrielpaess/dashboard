@@ -244,16 +244,20 @@ const DeliveryStatus = ({ orders, detailed = false }) => {
                     </p>
                   </div>
                   
-                  {/* Coluna 3: Status (2 colunas) */}
-                  <div className="col-span-2 text-center">
-                    <p className="text-sm font-medium">{text}</p>
-                    {order.willBeLate && (
-                      <p className="text-xs text-yellow-300 animate-pulse mt-1">
-                        Previsão de Atraso
-                      </p>
-                    )}
-                  </div>
-
+            {/* Coluna 3: Status (2 colunas) */}
+            <div className="col-span-2 flex justify-center">
+              <div className={`inline-flex items-center justify-center rounded-full px-3 py-1 ${
+                text === 'Atrasado'
+                  ? 'bg-red-500/15 text-red-400'
+                  : text === 'Em Risco'
+                  ? 'bg-yellow-500/15 text-yellow-400'
+                  : text === 'No Prazo'
+                  ? 'bg-emerald-500/15 text-emerald-400'
+                  : 'bg-blue-500/15 text-blue-400'
+              }`}>
+                <span className="text-xs font-semibold leading-none">{text}</span>
+              </div>
+            </div>
                   {/* Coluna 4: Data Prometida/Entregue (2 colunas) */}
                   <div className="col-span-2 text-center">
                     <p className="text-xs text-gray-400">
@@ -264,15 +268,20 @@ const DeliveryStatus = ({ orders, detailed = false }) => {
                     </p>
                   </div>
                   
-                  {/* Coluna 5: Dias Restantes (1 coluna) */}
-                  {!order.deliveryDate && order.diasRestantes !== null && (
-                    <div className="col-span-1 text-center">
-                      <p className="text-xs text-gray-400">Dias</p>
-                      <p className={`text-sm font-medium ${order.diasRestantes < 0 ? 'text-red-400' : order.diasRestantes <= 1 ? 'text-yellow-400' : 'text-green-400'}`}>
-                        {order.diasRestantes < 0 ? `${Math.abs(order.diasRestantes)}` : `${order.diasRestantes}`}
-                      </p>
-                    </div>
-                  )}
+            {/* Coluna 5: Dias Restantes (1 coluna) */}
+            {!order.deliveryDate && order.diasRestantes !== null && (
+              <div className="col-span-1 flex justify-center">
+                <span className={`inline-flex items-center justify-center rounded-full px-2.5 py-1 text-xs font-semibold ${
+                  order.diasRestantes < 0
+                    ? 'bg-red-500/15 text-red-400'
+                    : order.diasRestantes <= 1
+                    ? 'bg-yellow-500/15 text-yellow-400'
+                    : 'bg-blue-500/15 text-blue-400'
+                }`}>
+                  {order.diasRestantes < 0 ? Math.abs(order.diasRestantes) : order.diasRestantes}
+                </span>
+              </div>
+            )}
 
                   {/* Coluna 6: Botão de Expansão (1 coluna) */}
                   <div className="col-span-1 flex justify-center">
