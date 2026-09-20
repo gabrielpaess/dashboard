@@ -221,7 +221,7 @@ const DeliveryStatus = ({ orders, detailed = false }) => {
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.3, delay: index * 0.1 }}
-              className={`p-4 rounded-lg border ${className} min-h-[80px]`}
+              className="px-4 py-3 rounded-xl border border-slate-700/60 bg-[#171c25] min-h-[58px] transition-all duration-200 hover:bg-[#1b212c] hover:border-slate-600/70 shadow-sm"
             >
               <div 
                 className="cursor-pointer" 
