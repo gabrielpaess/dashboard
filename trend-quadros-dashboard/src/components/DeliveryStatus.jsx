@@ -130,26 +130,57 @@ const DeliveryStatus = ({ orders, detailed = false }) => {
         </div>
       </div>
 
-      <div className="grid grid-cols-4 gap-4 mb-6">
-        <div className="status-on-time rounded-lg p-4 text-center border h-24 flex flex-col justify-center">
-          <CheckCircle className="w-6 h-6 mx-auto mb-2" />
-          <p className="text-lg font-bold">{activeStatusCounts['on-time'] || 0}</p>
-          <p className="text-xs">No Prazo</p>
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
+        <div className="rounded-xl border border-emerald-500/20 bg-[#171c25] px-4 py-3 flex items-center justify-between min-h-[76px]">
+          <div>
+            <p className="text-[10px] text-slate-400 mb-1">Dentro do prazo</p>
+            <p className="text-sm font-semibold text-slate-200">No Prazo</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <p className="text-2xl font-bold text-emerald-400">{activeStatusCounts['on-time'] || 0}</p>
+            <div className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center">
+              <CheckCircle className="w-4 h-4 text-emerald-400" />
+            </div>
+          </div>
         </div>
-        <div className="status-risk rounded-lg p-4 text-center border h-24 flex flex-col justify-center">
-          <Clock className="w-6 h-6 mx-auto mb-2" />
-          <p className="text-lg font-bold">{activeStatusCounts['risk'] || 0}</p>
-          <p className="text-xs">Em Risco</p>
+
+        <div className="rounded-xl border border-amber-500/20 bg-[#171c25] px-4 py-3 flex items-center justify-between min-h-[76px]">
+          <div>
+            <p className="text-[10px] text-slate-400 mb-1">Atenção necessária</p>
+            <p className="text-sm font-semibold text-slate-200">Em Risco</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <p className="text-2xl font-bold text-amber-400">{activeStatusCounts['risk'] || 0}</p>
+            <div className="w-8 h-8 rounded-lg bg-amber-500/10 flex items-center justify-center">
+              <Clock className="w-4 h-4 text-amber-400" />
+            </div>
+          </div>
         </div>
-        <div className="status-late rounded-lg p-4 text-center border h-24 flex flex-col justify-center">
-          <AlertTriangle className="w-6 h-6 mx-auto mb-2" />
-          <p className="text-lg font-bold">{activeStatusCounts['late'] || 0}</p>
-          <p className="text-xs">Atrasados</p>
+
+        <div className="rounded-xl border border-red-500/20 bg-[#171c25] px-4 py-3 flex items-center justify-between min-h-[76px]">
+          <div>
+            <p className="text-[10px] text-slate-400 mb-1">Prazo excedido</p>
+            <p className="text-sm font-semibold text-slate-200">Atrasados</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <p className="text-2xl font-bold text-red-400">{activeStatusCounts['late'] || 0}</p>
+            <div className="w-8 h-8 rounded-lg bg-red-500/10 flex items-center justify-center">
+              <AlertTriangle className="w-4 h-4 text-red-400" />
+            </div>
+          </div>
         </div>
-        <div className="bg-purple-500/20 text-purple-400 border-purple-500/30 rounded-lg p-4 text-center border h-24 flex flex-col justify-center">
-          <CheckCircle className="w-6 h-6 mx-auto mb-2" />
-          <p className="text-lg font-bold">{activeStatusCounts['delivered'] || 0}</p>
-          <p className="text-xs">Entregues</p>
+
+        <div className="rounded-xl border border-purple-500/20 bg-[#171c25] px-4 py-3 flex items-center justify-between min-h-[76px]">
+          <div>
+            <p className="text-[10px] text-slate-400 mb-1">Finalizados</p>
+            <p className="text-sm font-semibold text-slate-200">Entregues</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <p className="text-2xl font-bold text-purple-400">{activeStatusCounts['delivered'] || 0}</p>
+            <div className="w-8 h-8 rounded-lg bg-purple-500/10 flex items-center justify-center">
+              <CheckCircle className="w-4 h-4 text-purple-400" />
+            </div>
+          </div>
         </div>
       </div>
 
