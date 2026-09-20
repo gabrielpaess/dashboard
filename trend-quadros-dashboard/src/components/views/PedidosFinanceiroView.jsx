@@ -54,6 +54,83 @@ const PedidosFinanceiroView = ({ data }) => {
     });
   }, [pedidos, statusSelecionado, busca]);
 
+  const normalizarPagamentos = (info = {}) => {
+    if (Array.isArray(info.pagamentos) && info.pagamentos.length) {
+      return info.pagamentos;
+    }
+
+    return [{
+      data: info.dataPagamento || '',
+      valor: Number(info.valorPago || 0),
+      forma: info.formaPagamento || 'PIX',
+      parcelas: Number(info.parcelas || 1),
+      taxa: Number(info.taxaCartao || 0)
+    }];
+  };
+
+  const atualizarPagamento = (pedido, indice, campo, valor) => {
+    setFinanceiro((prev) => {
+      const atual = prev[pedido.id] || {};
+      const pagamentos = normalizarPagamentos(atual).map((pagamento) => ({ ...pagamento }));
+
+      pagamentos[indice] = {
+        ...pagamentos[indice],
+        [campo]: campo === 'valor' || campo === 'parcelas' || campo === 'taxa'
+          ? Number(valor || 0)
+          : valor
+      };
+
+      return {
+        ...prev,
+        [pedido.id]: {
+          ...atual,
+          pagamentos
+        }
+      };
+    });
+  };
+
+  const adicionarPagamento = (pedido) => {
+    setFinanceiro((prev) => {
+      const atual = prev[pedido.id] || {};
+      const pagamentos = normalizarPagamentos(atual);
+
+      return {
+        ...prev,
+        [pedido.id]: {
+          ...atual,
+          pagamentos: [
+            ...pagamentos,
+            {
+              data: '',
+              valor: 0,
+              forma: 'PIX',
+              parcelas: 1,
+              taxa: 0
+            }
+          ]
+        }
+      };
+    });
+  };
+
+  const removerPagamento = (pedido, indice) => {
+    setFinanceiro((prev) => {
+      const atual = prev[pedido.id] || {};
+      const pagamentos = normalizarPagamentos(atual);
+
+      if (pagamentos.length <= 1) return prev;
+
+      return {
+        ...prev,
+        [pedido.id]: {
+          ...atual,
+          pagamentos: pagamentos.filter((_, i) => i !== indice)
+        }
+      };
+    });
+  };
+
   const atualizarFinanceiro = (pedido, campo, valor) => {
     setFinanceiro((prev) => {
       const atual = prev[pedido.id] || {};
@@ -179,40 +256,107 @@ const PedidosFinanceiroView = ({ data }) => {
                   {aberto && (
                     <tr className="border-b border-slate-800 bg-slate-900/50">
                       <td colSpan="8" className="px-4 py-5">
+                        <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <div className="text-sm font-semibold text-white">Pagamentos do pedido</div>
+                      <div className="text-xs text-slate-400">
+                        Registre uma ou mais entradas para este pedido.
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => adicionarPagamento(pedido)}
+                      className="rounded-lg border border-blue-500/50 bg-blue-500/10 px-3 py-2 text-xs font-semibold text-blue-300 hover:bg-blue-500/20"
+                    >
+                      + Adicionar pagamento
+                    </button>
+                  </div>
+
+                  {normalizarPagamentos(info).map((pagamento, indice) => {
+                    const taxa =
+                      pagamento.forma === 'Cartão'
+                        ? Number(
+                            pagamento.taxa ||
+                              taxasCartao[Number(pagamento.parcelas || 1)] ||
+                              0
+                          )
+                        : 0;
+
+                    const valor = Number(pagamento.valor || 0);
+                    const custoTaxa = valor * (taxa / 100);
+                    const valorLiquido = valor - custoTaxa;
+
+                    return (
+                      <div
+                        key={indice}
+                        className="rounded-xl border border-slate-800 bg-slate-950/60 p-4"
+                      >
+                        <div className="mb-4 flex items-center justify-between">
+                          <div className="text-sm font-semibold text-slate-200">
+                            Pagamento {indice + 1}
+                          </div>
+
+                          {normalizarPagamentos(info).length > 1 && (
+                            <button
+                              type="button"
+                              onClick={() => removerPagamento(pedido, indice)}
+                              className="text-xs font-medium text-red-300 hover:text-red-200"
+                            >
+                              Remover
+                            </button>
+                          )}
+                        </div>
+
                         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
                           <label className="space-y-2">
                             <span className="text-xs text-slate-400">Data do pagamento</span>
                             <input
                               type="date"
-                              value={info.dataPagamento || ''}
+                              value={pagamento.data || ''}
                               onChange={(e) =>
-                                atualizarFinanceiro(pedido, 'dataPagamento', e.target.value)
+                                atualizarPagamento(
+                                  pedido,
+                                  indice,
+                                  'data',
+                                  e.target.value
+                                )
                               }
                               className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-white"
                             />
                           </label>
 
                           <label className="space-y-2">
-                            <span className="text-xs text-slate-400">Status pagamento</span>
-                            <select
-                              value={info.statusPagamento || 'Pendente'}
+                            <span className="text-xs text-slate-400">Valor recebido</span>
+                            <input
+                              type="number"
+                              step="0.01"
+                              value={pagamento.valor || ''}
                               onChange={(e) =>
-                                atualizarFinanceiro(pedido, 'statusPagamento', e.target.value)
+                                atualizarPagamento(
+                                  pedido,
+                                  indice,
+                                  'valor',
+                                  e.target.value
+                                )
                               }
                               className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-white"
-                            >
-                              <option>Pendente</option>
-                              <option value="50%">50% pago</option>
-                              <option value="100%">100% pago</option>
-                            </select>
+                              placeholder="0,00"
+                            />
                           </label>
 
                           <label className="space-y-2">
                             <span className="text-xs text-slate-400">Forma de pagamento</span>
                             <select
-                              value={info.formaPagamento || 'PIX'}
+                              value={pagamento.forma || 'PIX'}
                               onChange={(e) =>
-                                atualizarFinanceiro(pedido, 'formaPagamento', e.target.value)
+                                atualizarPagamento(
+                                  pedido,
+                                  indice,
+                                  'forma',
+                                  e.target.value
+                                )
                               }
                               className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-white"
                             >
@@ -222,17 +366,21 @@ const PedidosFinanceiroView = ({ data }) => {
                             </select>
                           </label>
 
-                          {info.formaPagamento === 'Cartão' && (
+                          {pagamento.forma === 'Cartão' && (
                             <label className="space-y-2">
                               <span className="text-xs text-slate-400">Parcelas</span>
                               <select
-                                value={info.parcelas || ''}
+                                value={pagamento.parcelas || 1}
                                 onChange={(e) =>
-                                  atualizarFinanceiro(pedido, 'parcelas', e.target.value)
+                                  atualizarPagamento(
+                                    pedido,
+                                    indice,
+                                    'parcelas',
+                                    e.target.value
+                                  )
                                 }
                                 className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-white"
                               >
-                                <option value="">Selecione</option>
                                 {Object.keys(taxasCartao).map((parcela) => (
                                   <option key={parcela} value={parcela}>
                                     {parcela}x — {taxasCartao[parcela].toFixed(2)}%
@@ -241,35 +389,72 @@ const PedidosFinanceiroView = ({ data }) => {
                               </select>
                             </label>
                           )}
-
-                          <label className="space-y-2">
-                            <span className="text-xs text-slate-400">Frete cobrado do cliente</span>
-                            <input
-                              type="number"
-                              step="0.01"
-                              value={info.freteCobrado || ''}
-                              onChange={(e) =>
-                                atualizarFinanceiro(pedido, 'freteCobrado', e.target.value)
-                              }
-                              className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-white"
-                            />
-                          </label>
-
-                          <label className="space-y-2">
-                            <span className="text-xs text-slate-400">Frete pago pela empresa</span>
-                            <input
-                              type="number"
-                              step="0.01"
-                              value={info.fretePago || ''}
-                              onChange={(e) =>
-                                atualizarFinanceiro(pedido, 'fretePago', e.target.value)
-                              }
-                              className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-white"
-                            />
-                          </label>
                         </div>
 
-                        <div className="mt-5 grid gap-3 md:grid-cols-4">
+                        <div className="mt-4 grid gap-3 md:grid-cols-3">
+                          <div className="rounded-lg border border-slate-800 bg-slate-950 p-3">
+                            <div className="text-xs text-slate-500">Valor recebido</div>
+                            <div className="mt-1 font-semibold text-white">
+                              {formatMoney(valor)}
+                            </div>
+                          </div>
+
+                          <div className="rounded-lg border border-slate-800 bg-slate-950 p-3">
+                            <div className="text-xs text-slate-500">Custo taxa</div>
+                            <div className="mt-1 font-semibold text-red-300">
+                              {formatMoney(custoTaxa)}
+                            </div>
+                          </div>
+
+                          <div className="rounded-lg border border-slate-800 bg-slate-950 p-3">
+                            <div className="text-xs text-slate-500">Valor líquido</div>
+                            <div className="mt-1 font-semibold text-emerald-300">
+                              {formatMoney(valorLiquido)}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <label className="space-y-2">
+                      <span className="text-xs text-slate-400">Frete cobrado do cliente</span>
+                      <input
+                        type="number"
+                        step="0.01"
+                        value={info.freteCobrado || ''}
+                        onChange={(e) =>
+                          atualizarFinanceiro(
+                            pedido,
+                            'freteCobrado',
+                            e.target.value
+                          )
+                        }
+                        className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-white"
+                      />
+                    </label>
+
+                    <label className="space-y-2">
+                      <span className="text-xs text-slate-400">Frete pago pela empresa</span>
+                      <input
+                        type="number"
+                        step="0.01"
+                        value={info.fretePago || ''}
+                        onChange={(e) =>
+                          atualizarFinanceiro(
+                            pedido,
+                            'fretePago',
+                            e.target.value
+                          )
+                        }
+                        className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-white"
+                      />
+                    </label>
+                  </div>
+                </div>
+
+                <div className="mt-5 grid gap-3 md:grid-cols-4">
                           <div className="rounded-lg border border-slate-800 bg-slate-950 p-3">
                             <div className="text-xs text-slate-500">Valor pago</div>
                             <div className="mt-1 font-semibold text-white">
